@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     // 5. Send email via Resend
     if (process.env.RESEND_API_KEY) {
       try {
-        await resend.emails.send({
+        const { error: resendError } = await resend.emails.send({
           from: 'Toolate <onboarding@resend.dev>', // Resend sandbox default from address
           to: email,
           subject: 'Your Toolate OTP Verification Code',
@@ -54,6 +54,11 @@ export async function POST(req: Request) {
             </div>
           `,
         });
+        if (resendError) {
+          console.error('Failed to send email via Resend:', resendError);
+          // Fallback for development if API key is configured but failing (e.g. sandbox domain issues)
+          console.log(`[DEVELOPMENT FALLBACK] OTP for ${email}: ${otp}`);
+        }
       } catch (emailError: any) {
         console.error('Failed to send email via Resend:', emailError);
         // Fallback for development if API key is configured but failing (e.g. sandbox domain issues)

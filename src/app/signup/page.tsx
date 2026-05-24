@@ -32,6 +32,11 @@ export default function SignupPage() {
     formState: { errors },
   } = useForm<SignupFields>({
     resolver: zodResolver(signupSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+    },
   });
 
   // 1. Send OTP verification email
