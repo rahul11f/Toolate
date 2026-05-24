@@ -4,12 +4,17 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  // 1. Create Hashed Passwords
-  const adminPasswordHash = await bcrypt.hash('Admin@123', 10);
-  const userPasswordHash = await bcrypt.hash('User@123', 10);
+  // 1. Read configuration or fall back
+  const adminEmail = process.env.NEXT_PUBLIC_SEED_ADMIN_EMAIL || 'admin@toolate.com';
+  const adminPassword = process.env.NEXT_PUBLIC_SEED_ADMIN_PASSWORD || 'Admin@123';
+  const userEmail = process.env.NEXT_PUBLIC_SEED_USER_EMAIL || 'user@toolate.com';
+  const userPassword = process.env.NEXT_PUBLIC_SEED_USER_PASSWORD || 'User@123';
+
+  // Create Hashed Passwords
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
+  const userPasswordHash = await bcrypt.hash(userPassword, 10);
 
   // 2. Seed Admin User
-  const adminEmail = 'admin@toolate.com';
   let admin = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (!admin) {
     admin = await prisma.user.create({
@@ -22,10 +27,15 @@ async function main() {
       },
     });
     console.log('Seeded admin user:', admin.email);
+  } else {
+    admin = await prisma.user.update({
+      where: { email: adminEmail },
+      data: { passwordHash: adminPasswordHash },
+    });
+    console.log('Updated existing admin user password:', admin.email);
   }
 
   // 3. Seed Regular User
-  const userEmail = 'user@toolate.com';
   let user = await prisma.user.findUnique({ where: { email: userEmail } });
   if (!user) {
     user = await prisma.user.create({
@@ -38,6 +48,12 @@ async function main() {
       },
     });
     console.log('Seeded regular user:', user.email);
+  } else {
+    user = await prisma.user.update({
+      where: { email: userEmail },
+      data: { passwordHash: userPasswordHash },
+    });
+    console.log('Updated existing regular user password:', user.email);
   }
 
   // 4. Seed Mock Properties

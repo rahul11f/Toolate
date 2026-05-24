@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
-import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, ShieldCheck, User } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
@@ -23,12 +23,19 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Configurable seeded credentials
+  const adminEmail = process.env.NEXT_PUBLIC_SEED_ADMIN_EMAIL || 'admin@toolate.com';
+  const adminPassword = process.env.NEXT_PUBLIC_SEED_ADMIN_PASSWORD || 'Admin@123';
+  const userEmail = process.env.NEXT_PUBLIC_SEED_USER_EMAIL || 'user@toolate.com';
+  const userPassword = process.env.NEXT_PUBLIC_SEED_USER_PASSWORD || 'User@123';
+
   // Check if there was a redirection auth error
   const authError = searchParams.get('error');
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFields>({
     resolver: zodResolver(loginSchema),
@@ -37,6 +44,12 @@ function LoginForm() {
       password: '',
     },
   });
+
+  const fillCredentials = (email: string, pass: string) => {
+    setValue('email', email, { shouldValidate: true });
+    setValue('password', pass, { shouldValidate: true });
+    toast.success('Credentials filled! Ready to login.');
+  };
 
   const onSubmit = async (data: LoginFields) => {
     setLoading(true);
@@ -90,7 +103,44 @@ function LoginForm() {
           </div>
         )}
 
-
+        {/* Quick Autofill Seeded Credentials */}
+        <div className="bg-indigo-50/40 border border-indigo-100/70 p-4 rounded-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+              <span>🔑</span> Quick Test Accounts
+            </span>
+            <span className="text-[10px] bg-indigo-100/60 text-indigo-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+              Click to Auto-fill
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => fillCredentials(adminEmail, adminPassword)}
+              className="text-left bg-white hover:bg-indigo-50/60 border border-slate-100 hover:border-indigo-200 p-2.5 rounded-xl transition-all duration-200 shadow-xs hover:shadow-sm active:scale-98 cursor-pointer group"
+            >
+              <div className="flex items-center space-x-1.5 mb-1 text-slate-800 font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-650 group-hover:scale-105 transition-transform" />
+                <span className="text-xs">Admin Portal</span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium truncate">{adminEmail}</p>
+              <p className="text-[10px] text-indigo-650 font-semibold mt-0.5">Pass: {adminPassword}</p>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => fillCredentials(userEmail, userPassword)}
+              className="text-left bg-white hover:bg-indigo-50/60 border border-slate-100 hover:border-indigo-200 p-2.5 rounded-xl transition-all duration-200 shadow-xs hover:shadow-sm active:scale-98 cursor-pointer group"
+            >
+              <div className="flex items-center space-x-1.5 mb-1 text-slate-800 font-bold">
+                <User className="w-3.5 h-3.5 text-indigo-650 group-hover:scale-105 transition-transform" />
+                <span className="text-xs">Regular User</span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium truncate">{userEmail}</p>
+              <p className="text-[10px] text-indigo-650 font-semibold mt-0.5">Pass: {userPassword}</p>
+            </button>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Email */}
