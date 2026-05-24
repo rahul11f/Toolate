@@ -19,15 +19,24 @@ export const authOptions: AuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log(`[NextAuth] Auth attempt for email: "${credentials?.email}"`);
         if (!credentials?.email || !credentials?.password) {
+          console.warn('[NextAuth] Missing email or password');
           throw new Error('Please enter both email and password.');
         }
 
+        const trimmedEmail = credentials.email.trim().toLowerCase();
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: trimmedEmail },
         });
 
-        if (!user || !user.passwordHash) {
+        if (!user) {
+          console.warn(`[NextAuth] User not found for email: "${trimmedEmail}"`);
+          throw new Error('Invalid email or password.');
+        }
+
+        if (!user.passwordHash) {
+          console.warn(`[NextAuth] User "${trimmedEmail}" has no passwordHash set`);
           throw new Error('Invalid email or password.');
         }
 
@@ -37,9 +46,11 @@ export const authOptions: AuthOptions = {
         );
 
         if (!isPasswordCorrect) {
+          console.warn(`[NextAuth] Incorrect password for user: "${trimmedEmail}"`);
           throw new Error('Invalid email or password.');
         }
 
+        console.log(`[NextAuth] Successful login for user: "${trimmedEmail}" with role: "${user.role}"`);
         return {
           id: user.id,
           name: user.name,
