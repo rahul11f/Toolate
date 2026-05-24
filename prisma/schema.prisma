@@ -1,11 +1,11 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model User {
@@ -15,31 +15,30 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  role          String     @default("USER") // "USER" or "ADMIN"
-  accounts      Account[]
-  sessions      Session[]
-  listings      Listing[]
-  reviews       Review[]
-  adminLogs     AdminLog[]
+  role          String     @default("USER")
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  accounts      Account[]
+  adminLogs     AdminLog[]
+  listings      Listing[]
+  reviews       Review[]
+  sessions      Session[]
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -65,7 +64,7 @@ model Listing {
   id             String   @id @default(cuid())
   title          String
   description    String
-  category       String   // "HOUSE", "FLAT", "PG", "SHOP", "VILLA", "OFFICE", "HOSTEL", "COWORKING", "WAREHOUSE", "ROOMMATE"
+  category       String
   price          Float
   openingHours   String
   closingHours   String
@@ -78,28 +77,28 @@ model Listing {
   area           String
   state          String   @default("")
   city           String   @default("")
-  roommateType   String?  // "HAVE_ROOM" or "NEED_ROOM"
-  roommateGender String?  // "MALE", "FEMALE", "ANY"
-  facilities     String   @default("{}") // JSON stringified facilities object
-  images         String   // JSON stringified array of URLs
+  roommateType   String?
+  roommateGender String?
+  facilities     String   @default("{}")
+  images         String
   featured       Boolean  @default(false)
-  status         String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  status         String   @default("PENDING")
   userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reviews        Review[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews        Review[]
 }
 
 model AdminLog {
   id         String   @id @default(cuid())
   adminId    String
-  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
   action     String
   targetType String
   targetId   String
   details    String?
   timestamp  DateTime @default(now())
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
 }
 
 model SiteSettings {
@@ -116,13 +115,13 @@ model SiteSettings {
 
 model Review {
   id        String   @id @default(cuid())
-  rating    Int      // 1 to 5 stars
+  rating    Int
   comment   String
   listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Feedback {
