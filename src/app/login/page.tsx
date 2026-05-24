@@ -91,23 +91,25 @@ function LoginForm() {
         )}
 
         {/* Testing help card */}
-        <div className="bg-indigo-50/50 border border-indigo-100 text-slate-750 p-4 rounded-xl space-y-1.5 text-xs">
-          <p className="font-bold text-indigo-700 flex items-center gap-1">
-            <span>🔑 Testing Credentials (Seeded):</span>
-          </p>
-          <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-600">
-            <div>
-              <p className="font-bold text-indigo-850">Admin Account</p>
-              <p>Email: admin@toolate.com</p>
-              <p>Pass: Admin@123</p>
-            </div>
-            <div>
-              <p className="font-bold text-indigo-850">User Account</p>
-              <p>Email: user@toolate.com</p>
-              <p>Pass: User@123</p>
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-indigo-50/50 border border-indigo-100 text-slate-750 p-4 rounded-xl space-y-1.5 text-xs">
+            <p className="font-bold text-indigo-700 flex items-center gap-1">
+              <span>🔑 Testing Credentials (Seeded):</span>
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-[11px] font-medium text-slate-600">
+              <div>
+                <p className="font-bold text-indigo-850">Admin Account</p>
+                <p>Email: admin@toolate.com</p>
+                <p>Pass: Admin@123</p>
+              </div>
+              <div>
+                <p className="font-bold text-indigo-850">User Account</p>
+                <p>Email: user@toolate.com</p>
+                <p>Pass: User@123</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Email */}
