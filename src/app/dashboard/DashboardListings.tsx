@@ -1,0 +1,160 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { Pencil, Trash2, ExternalLink, Building, IndianRupee } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ListingStatus } from '@/lib/types';
+
+interface ListingItem {
+  id: string;
+  title: string;
+  category: string;
+  price: number;
+  area: string;
+  status: ListingStatus;
+  createdAt: Date | string;
+}
+
+interface DashboardListingsProps {
+  initialListings: ListingItem[];
+}
+
+export default function DashboardListings({ initialListings }: DashboardListingsProps) {
+  const [listings, setListings] = useState<ListingItem[]>(initialListings);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete listing "${title}"?`)) return;
+
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/listings/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to delete listing.');
+      } else {
+        toast.success('Listing deleted successfully.');
+        setListings(listings.filter((l) => l.id !== id));
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const getStatusBadge = (status: ListingStatus) => {
+    switch (status) {
+      case ListingStatus.APPROVED:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+            Approved
+          </span>
+        );
+      case ListingStatus.PENDING:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+            Pending Approval
+          </span>
+        );
+      case ListingStatus.REJECTED:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-100">
+            Rejected
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (listings.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center text-slate-400 space-y-4">
+        <Building className="w-12 h-12 mx-auto text-slate-300" />
+        <p className="font-medium">You haven't posted any advertisements yet.</p>
+        <Link
+          href="/listings/create"
+          className="inline-flex bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl transition shadow-xs cursor-pointer select-none"
+        >
+          Post Your First Listing
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-xs">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
+          <thead className="bg-slate-55 border-b border-slate-100 text-slate-450 uppercase font-bold text-[10px] tracking-wider">
+            <tr>
+              <th className="px-6 py-4">Title / Category</th>
+              <th className="px-6 py-4">Area</th>
+              <th className="px-6 py-4">Price</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4">Date Posted</th>
+              <th className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-slate-650">
+            {listings.map((listing) => (
+              <tr key={listing.id} className="hover:bg-slate-50/50 transition">
+                <td className="px-6 py-4">
+                  <div className="font-semibold text-slate-800 line-clamp-1">{listing.title}</div>
+                  <span className="text-[10px] uppercase font-bold text-indigo-500 tracking-wider">
+                    {listing.category.toLowerCase()}
+                  </span>
+                </td>
+                <td className="px-6 py-4 truncate max-w-[150px]">{listing.area}</td>
+                <td className="px-6 py-4 font-bold text-slate-800">
+                  <div className="flex items-center">
+                    <IndianRupee className="w-3.5 h-3.5 mr-0.5 text-slate-450" />
+                    <span>{listing.price.toLocaleString('en-IN')}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">{getStatusBadge(listing.status)}</td>
+                <td className="px-6 py-4 text-xs text-slate-400">
+                  {new Date(listing.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex items-center justify-end space-x-2">
+                    {listing.status === ListingStatus.APPROVED && (
+                      <Link
+                        href={`/listings/${listing.id}`}
+                        className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition"
+                        title="View Live Listing"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                    )}
+                    <Link
+                      href={`/listings/edit/${listing.id}`}
+                      className="p-2 border border-slate-200 hover:bg-slate-50 text-indigo-600 rounded-lg transition"
+                      title="Edit Details"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(listing.id, listing.title)}
+                      disabled={deletingId === listing.id}
+                      className="p-2 border border-slate-200 hover:bg-rose-50 text-rose-600 rounded-lg transition cursor-pointer"
+                      title="Remove Listing"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

@@ -1,65 +1,271 @@
-import Image from "next/image";
+import Link from 'next/link';
+import prisma from '@/lib/prisma';
+import { ListingStatus, ListingCategory } from '@/lib/types';
+import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, ShieldCheck, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock } from 'lucide-react';
+import Image from 'next/image';
 
-export default function Home() {
+export const revalidate = 60; // Revalidate home page cache every minute
+
+export default async function HomePage() {
+  // Fetch latest 3 approved listings
+  let latestListings: any[] = [];
+  try {
+    const dbListings = await prisma.listing.findMany({
+      where: { status: ListingStatus.APPROVED },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+    });
+    latestListings = dbListings.map(l => ({
+      ...l,
+      images: typeof l.images === 'string' ? JSON.parse(l.images) : l.images
+    }));
+  } catch (error) {
+    console.error('Failed to fetch home page listings:', error);
+  }
+
+  // Fetch admin SiteSettings
+  let settings = null;
+  try {
+    settings = await prisma.siteSettings.findUnique({
+      where: { id: 'default' },
+    });
+  } catch (error) {
+    console.error('Failed to fetch settings:', error);
+  }
+
+  const heroTitle = settings?.heroTitle || 'Find Your Next Home, Flat or Shop Without Brokerage';
+  const heroSubtitle = settings?.heroSubtitle || 'Search vetted listings for houses, flats, PGs, roommates and commercial spaces. Zero fees.';
+
+  const categories = [
+    { name: 'House', key: ListingCategory.HOUSE, count: 'Individual homes', icon: Home, bg: 'bg-indigo-50 text-indigo-600' },
+    { name: 'Flat', key: ListingCategory.FLAT, count: 'Modern apartments', icon: Building, bg: 'bg-emerald-50 text-emerald-600' },
+    { name: 'PG', key: ListingCategory.PG, count: 'Paying guests', icon: Compass, bg: 'bg-amber-50 text-amber-600' },
+    { name: 'Roommate', key: ListingCategory.ROOMMATE, count: 'Find nearby roommates', icon: Users, bg: 'bg-purple-50 text-purple-600' },
+    { name: 'Shop', key: ListingCategory.SHOP, count: 'Commercial spaces', icon: Store, bg: 'bg-rose-50 text-rose-600' },
+    { name: 'Villa', key: ListingCategory.VILLA, count: 'Luxury estates', icon: Sparkles, bg: 'bg-teal-50 text-teal-650' },
+    { name: 'Office', key: ListingCategory.OFFICE, count: 'Workspaces', icon: Briefcase, bg: 'bg-cyan-50 text-cyan-600' },
+    { name: 'Hostel', key: ListingCategory.HOSTEL, count: 'Student housing', icon: Bed, bg: 'bg-violet-50 text-violet-650' },
+    { name: 'Coworking', key: ListingCategory.COWORKING, count: 'Shared desks', icon: Laptop, bg: 'bg-orange-50 text-orange-655' },
+    { name: 'Warehouse', key: ListingCategory.WAREHOUSE, count: 'Storage spaces', icon: Package, bg: 'bg-sky-50 text-sky-600' },
+    { name: 'Dormitory', key: ListingCategory.DORMITORY, count: 'Shared hostel beds', icon: Bed, bg: 'bg-teal-50 text-teal-600' },
+    { name: 'Hotel', key: ListingCategory.HOTEL, count: 'Rooms & suites', icon: Hotel, bg: 'bg-indigo-50 text-indigo-650' },
+    { name: 'Dharamshala', key: ListingCategory.DHARAMSHALA, count: 'Pilgrim lodgings', icon: Landmark, bg: 'bg-amber-50 text-amber-600' },
+    { name: 'Hourly Room', key: ListingCategory.HOURLY_ROOM, count: 'Flexible micro-stays', icon: Clock, bg: 'bg-rose-50 text-rose-600' },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="space-y-16 pb-12">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white py-20 px-4 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_50%)]" />
+        <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 backdrop-blur-sm">
+            🚀 100% Free Property & Roommate Directory
+          </span>
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight whitespace-pre-line">
+            {heroTitle}
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
+            {heroSubtitle}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+          {/* Native HTML Search Form */}
+          <form
+            action="/listings"
+            method="GET"
+            className="bg-white p-3 rounded-2xl shadow-2xl max-w-4xl mx-auto flex flex-col md:flex-row gap-2.5 text-slate-800"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <div className="flex-1 flex flex-col items-start px-3 py-1">
+              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Search</label>
+              <input
+                type="text"
+                name="query"
+                placeholder="Search description, keywords..."
+                className="w-full bg-transparent border-0 focus:outline-hidden focus:ring-0 text-sm py-1 placeholder-slate-400 text-slate-700 font-medium"
+              />
+            </div>
+            <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1">
+              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Category</label>
+              <select
+                name="category"
+                className="w-full bg-transparent border-0 focus:outline-hidden focus:ring-0 text-sm py-1 text-slate-700 appearance-none font-medium"
+              >
+                <option value="">All Categories</option>
+                {Object.values(ListingCategory).map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat === 'ROOMMATE' ? 'Roommates / Roomy' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1">
+              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">City / Location</label>
+              <input
+                type="text"
+                name="city"
+                placeholder="e.g. Bangalore, Noida"
+                className="w-full bg-transparent border-0 focus:outline-hidden focus:ring-0 text-sm py-1 placeholder-slate-400 text-slate-700 font-medium"
+              />
+            </div>
+            <button
+              type="submit"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl transition duration-200 shadow-md hover:shadow-lg select-none cursor-pointer"
+            >
+              Search
+            </button>
+          </form>
         </div>
-      </main>
+      </section>
+
+      {/* Category Grid */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="text-center md:text-left">
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Browse by Category</h2>
+          <p className="text-slate-500 mt-1.5 font-medium">Explore specific niches of verified properties</p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+          {categories.map((cat) => {
+            const Icon = cat.icon;
+            return (
+              <Link
+                key={cat.key}
+                href={`/listings?category=${cat.key}`}
+                className="group p-6 bg-white rounded-2xl border border-slate-100 hover:border-indigo-100 hover:shadow-xl transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left space-y-4"
+              >
+                <div className={`p-4 rounded-xl transition-all duration-300 ${cat.bg} group-hover:scale-110`}>
+                  <Icon className="w-6 h-6 stroke-[2]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-800 group-hover:text-indigo-600 transition">
+                    {cat.name}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{cat.count}</p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Browse by Location Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="text-center md:text-left">
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Browse by Location</h2>
+          <p className="text-slate-500 mt-1.5 font-medium">Find properties and roommates in popular cities</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[
+            { city: 'Bangalore', state: 'Karnataka' },
+            { city: 'Mumbai', state: 'Maharashtra' },
+            { city: 'Noida', state: 'Uttar Pradesh' },
+            { city: 'New Delhi', state: 'Delhi' }
+          ].map((loc) => (
+            <Link
+              key={loc.city}
+              href={`/listings?city=${loc.city}`}
+              className="group p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-150 hover:bg-white hover:shadow-lg transition-all duration-300 flex items-center justify-between"
+            >
+              <div>
+                <h4 className="font-bold text-slate-850 group-hover:text-indigo-600 transition">{loc.city}</h4>
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{loc.state}</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Recent Listings Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex justify-between items-end">
+          <div>
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Newly Approved Properties</h2>
+            <p className="text-slate-500 mt-1.5 font-medium">Freshly vetted listings, available right now</p>
+          </div>
+          <Link
+            href="/listings"
+            className="hidden sm:inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition"
+          >
+            <span>View All Listings</span>
+            <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
+        </div>
+
+        {latestListings.length === 0 ? (
+          <div className="bg-white border border-slate-100 rounded-2xl p-12 text-center text-slate-400">
+            No properties have been listed yet. Check back soon!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {latestListings.map((listing) => {
+              const isRoommate = listing.category === ListingCategory.ROOMMATE;
+              const displayCategory = isRoommate ? 'roommate' : listing.category.toLowerCase();
+              return (
+                <Link
+                  key={listing.id}
+                  href={`/listings/${listing.id}`}
+                  className={`group bg-white rounded-2xl overflow-hidden border ${
+                    isRoommate ? 'border-violet-100 hover:border-violet-300' : 'border-slate-100 hover:border-slate-200'
+                  } shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col h-full`}
+                >
+                  <div className="relative h-48 bg-slate-100 overflow-hidden">
+                    {listing.images && listing.images.length > 0 ? (
+                      <img
+                        src={listing.images[0]}
+                        alt={listing.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
+                        {isRoommate ? (
+                          <Users className="w-12 h-12 text-violet-400 stroke-[1.5]" />
+                        ) : (
+                          <Building className="w-12 h-12 text-slate-400 stroke-[1.5]" />
+                        )}
+                      </div>
+                    )}
+                    <span className={`absolute top-4 left-4 ${
+                      isRoommate ? 'bg-violet-650' : 'bg-indigo-650'
+                    } text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-md uppercase tracking-wider`}>
+                      {displayCategory}
+                    </span>
+                    {listing.featured && (
+                      <span className="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-550 text-white text-[9px] font-black px-2.5 py-0.5 rounded-md shadow-md uppercase tracking-wider">
+                        ⭐ Featured
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-6 flex-grow flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <div className={`flex items-center ${isRoommate ? 'text-violet-650' : 'text-indigo-600'} text-lg font-extrabold`}>
+                        <IndianRupee className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>{listing.price.toLocaleString('en-IN')}</span>
+                        <span className="text-xs text-slate-400 font-normal ml-1">
+                          {isRoommate ? '/ share' : '/ month'}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition">
+                        {listing.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {listing.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center text-xs text-slate-400 pt-3 border-t border-slate-50 gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span className="truncate">
+                        {listing.area}{listing.city ? `, ${listing.city}` : ''}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

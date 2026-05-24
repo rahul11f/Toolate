@@ -1,0 +1,27 @@
+export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+}
+
+export enum ListingCategory {
+  HOUSE = 'HOUSE',
+  FLAT = 'FLAT',
+  PG = 'PG',
+  SHOP = 'SHOP',
+  VILLA = 'VILLA',
+  OFFICE = 'OFFICE',
+  HOSTEL = 'HOSTEL',
+  COWORKING = 'COWORKING',
+  WAREHOUSE = 'WAREHOUSE',
+  ROOMMATE = 'ROOMMATE',
+  DORMITORY = 'DORMITORY',
+  HOTEL = 'HOTEL',
+  DHARAMSHALA = 'DHARAMSHALA',
+  HOURLY_ROOM = 'HOURLY_ROOM',
+}
+
+export enum ListingStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
