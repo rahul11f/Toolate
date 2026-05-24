@@ -91,7 +91,18 @@ export default function Navbar() {
                   <span>Post Ad</span>
                 </Link>
 
-                <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">
+                <div className="flex items-center space-x-3 pl-2 border-l border-slate-200">
+                  {session.user.image ? (
+                    <img
+                      src={session.user.image}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                    />
+                  ) : (
+                    <div className="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
+                      {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
                   <div className="flex flex-col items-end">
                     <span className="text-xs font-semibold text-slate-800 line-clamp-1 max-w-[120px]">
                       {session.user.name || 'User'}
@@ -161,9 +172,17 @@ export default function Navbar() {
           {session?.user ? (
             <div className="pt-4 border-t border-slate-100 space-y-2">
               <div className="px-3 py-2 flex items-center space-x-2">
-                <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full">
-                  <User className="w-4 h-4" />
-                </div>
+                {session.user.image ? (
+                  <img
+                    src={session.user.image}
+                    alt="Avatar"
+                    className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                  />
+                ) : (
+                  <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
                 <div>
                   <div className="text-sm font-semibold text-slate-800">{session.user.name}</div>
                   <div className="text-xs text-slate-400 capitalize">{(session.user as any).role?.toLowerCase()}</div>

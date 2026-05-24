@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { ListingStatus, ListingCategory } from '@/lib/types';
-import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, ShieldCheck, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock } from 'lucide-react';
-import Image from 'next/image';
+import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock } from 'lucide-react';
+import HomeSearchForm from '@/components/HomeSearchForm';
 
 export const revalidate = 60; // Revalidate home page cache every minute
 
@@ -69,51 +69,8 @@ export default async function HomePage() {
             {heroSubtitle}
           </p>
 
-          {/* Native HTML Search Form */}
-          <form
-            action="/listings"
-            method="GET"
-            className="bg-white p-3 rounded-2xl shadow-2xl max-w-4xl mx-auto flex flex-col md:flex-row gap-2.5 text-slate-800"
-          >
-            <div className="flex-1 flex flex-col items-start px-3 py-1">
-              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Search</label>
-              <input
-                type="text"
-                name="query"
-                placeholder="Search description, keywords..."
-                className="w-full bg-transparent border-0 focus:outline-hidden focus:ring-0 text-sm py-1 placeholder-slate-400 text-slate-700 font-medium"
-              />
-            </div>
-            <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1">
-              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Category</label>
-              <select
-                name="category"
-                className="w-full bg-transparent border-0 focus:outline-hidden focus:ring-0 text-sm py-1 text-slate-700 appearance-none font-medium"
-              >
-                <option value="">All Categories</option>
-                {Object.values(ListingCategory).map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat === 'ROOMMATE' ? 'Roommates / Roomy' : cat.charAt(0) + cat.slice(1).toLowerCase()}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1">
-              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">City / Location</label>
-              <input
-                type="text"
-                name="city"
-                placeholder="e.g. Bangalore, Noida"
-                className="w-full bg-transparent border-0 focus:outline-hidden focus:ring-0 text-sm py-1 placeholder-slate-400 text-slate-700 font-medium"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl transition duration-200 shadow-md hover:shadow-lg select-none cursor-pointer"
-            >
-              Search
-            </button>
-          </form>
+          {/* Geolocation Enabled Search Form */}
+          <HomeSearchForm />
         </div>
       </section>
 
