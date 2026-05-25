@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import AdSensePlaceholder from '@/components/AdSensePlaceholder';
 import Link from 'next/link';
 import InstallAppPopup from '@/components/InstallAppPopup';
+import FloatingContactButton from '@/components/FloatingContactButton';
 import prisma from '@/lib/prisma';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -88,7 +89,7 @@ export default async function RootLayout({
               <div className="flex flex-col md:flex-row justify-between items-center text-xs text-slate-400 border-t border-slate-100 pt-6">
                 <p>&copy; {new Date().getFullYear()} {footerText}</p>
                 <div className="flex space-x-4 mt-4 md:mt-0">
-                  <Link href="/contact" className="hover:text-indigo-650 text-indigo-600 font-bold transition">Contact Us & Suggestions</Link>
+                  <Link href="/contact" className="hover:text-indigo-650 transition">Contact Us & Suggestions</Link>
                   <Link href="/privacy" className="hover:text-indigo-650 transition">Privacy Policy</Link>
                   <Link href="/terms" className="hover:text-indigo-650 transition">Terms of Service</Link>
                   <Link href="/admin" className="hover:text-indigo-650 transition">Admin Portal</Link>
@@ -97,6 +98,7 @@ export default async function RootLayout({
             </div>
           </footer>
           <InstallAppPopup />
+          <FloatingContactButton />
         </Providers>
       </body>
     </html>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, MapPin, Phone, Send, Loader2, MessageSquare, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -10,6 +10,22 @@ export default function ContactPage() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const res = await fetch('/api/admin/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setSettings(data);
+        }
+      } catch (err) {
+        console.error('Failed to load contact settings:', err);
+      }
+    }
+    loadSettings();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +94,7 @@ export default function ContactPage() {
                 <MapPin className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-slate-200 text-xs font-bold uppercase tracking-wider">Office Address</h4>
-                  <p className="text-slate-300 text-xs mt-0.5">Prestige Tech Park, Outer Ring Rd, Bangalore, KA, India</p>
+                  <p className="text-slate-300 text-xs mt-0.5">{settings?.officeAddress || 'Prestige Tech Park, Outer Ring Rd, Bangalore, KA, India'}</p>
                 </div>
               </div>
 
@@ -86,7 +102,7 @@ export default function ContactPage() {
                 <Mail className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-slate-200 text-xs font-bold uppercase tracking-wider">Email Us</h4>
-                  <p className="text-slate-300 text-xs mt-0.5 hover:text-white transition">support@toolate.com</p>
+                  <p className="text-slate-300 text-xs mt-0.5 hover:text-white transition">{settings?.helpEmail || 'support@toolate.com'}</p>
                 </div>
               </div>
 
@@ -94,7 +110,7 @@ export default function ContactPage() {
                 <Phone className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-slate-200 text-xs font-bold uppercase tracking-wider">Call Support</h4>
-                  <p className="text-slate-300 text-xs mt-0.5">+91 80 4455 6677</p>
+                  <p className="text-slate-300 text-xs mt-0.5">{settings?.supportPhone || '+91 80 4455 6677'}</p>
                 </div>
               </div>
             </div>

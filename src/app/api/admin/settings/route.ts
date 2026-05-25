@@ -39,7 +39,20 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { heroTitle, heroSubtitle, footerText, metaTitle, metaDescription, adsenseId, maintenanceMode } = body;
+    const {
+      heroTitle,
+      heroSubtitle,
+      footerText,
+      metaTitle,
+      metaDescription,
+      adsenseId,
+      maintenanceMode,
+      helpEmail,
+      supportEmail,
+      officeAddress,
+      supportPhone,
+      whatsappSupport,
+    } = body;
 
     const updated = await prisma.siteSettings.upsert({
       where: { id: 'default' },
@@ -51,6 +64,11 @@ export async function PUT(req: NextRequest) {
         metaDescription: metaDescription !== undefined ? metaDescription : undefined,
         adsenseId: adsenseId !== undefined ? adsenseId : undefined,
         maintenanceMode: maintenanceMode !== undefined ? maintenanceMode : undefined,
+        helpEmail: helpEmail !== undefined ? helpEmail : undefined,
+        supportEmail: supportEmail !== undefined ? supportEmail : undefined,
+        officeAddress: officeAddress !== undefined ? officeAddress : undefined,
+        supportPhone: supportPhone !== undefined ? supportPhone : undefined,
+        whatsappSupport: whatsappSupport !== undefined ? whatsappSupport : undefined,
       },
       create: {
         id: 'default',
@@ -61,6 +79,11 @@ export async function PUT(req: NextRequest) {
         metaDescription: metaDescription || undefined,
         adsenseId: adsenseId || '',
         maintenanceMode: !!maintenanceMode,
+        helpEmail: helpEmail || undefined,
+        supportEmail: supportEmail || undefined,
+        officeAddress: officeAddress || undefined,
+        supportPhone: supportPhone || undefined,
+        whatsappSupport: whatsappSupport || undefined,
       },
     });
 

@@ -31,7 +31,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2 text-indigo-600 hover:text-indigo-700 transition">
-              <Building className="w-7 h-7 stroke-[2.5]" />
+              <img src="/images/logo.png" alt="Toolate Logo" className="w-8 h-8 object-contain rounded-lg shadow-xs" />
               <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
                 Toolate
               </span>
