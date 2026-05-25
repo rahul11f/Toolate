@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     }
 
     const { name, email, password, otp, recaptchaToken } = validationResult.data;
+    const normalizedEmail = email.trim().toLowerCase();
 
     // 2. Check rate limits
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -45,20 +46,20 @@ export async function POST(req: Request) {
     }
 
     // 4. Verify OTP from Redis
-    const otpKey = `otp:${email}`;
-    const storedOtp = (await redis.get(otpKey)) as string | null;
+    const otpKey = `otp:${normalizedEmail}`;
+    const storedOtp = await redis.get(otpKey);
     
     if (!storedOtp) {
       return NextResponse.json({ error: 'OTP code has expired or is invalid.' }, { status: 400 });
     }
 
-    if (storedOtp !== otp) {
+    if (String(storedOtp).trim() !== String(otp).trim()) {
       return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 400 });
     }
 
     // 5. Check if user already exists (just to double check concurrency)
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
     if (existingUser) {
       return NextResponse.json({ error: 'Email is already registered.' }, { status: 400 });
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
     const newUser = await prisma.user.create({
       data: {
         name,
-        email,
+        email: normalizedEmail,
         passwordHash,
         role: 'USER',
         emailVerified: new Date(),

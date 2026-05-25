@@ -12,9 +12,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     // 1. Check rate limits
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    const rateLimitKey = `otp-limit:${ip}:${email}`;
+    const rateLimitKey = `otp-limit:${ip}:${normalizedEmail}`;
     const { success } = await otpRateLimiter.limit(rateLimitKey);
     if (!success) {
       return NextResponse.json(
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
 
     // 2. Check if email is already registered
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
     if (existingUser) {
       return NextResponse.json({ error: 'Email is already registered.' }, { status: 400 });
@@ -35,7 +37,7 @@ export async function POST(req: Request) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 4. Store in Upstash Redis (valid for 5 minutes = 300 seconds)
-    const otpKey = `otp:${email}`;
+    const otpKey = `otp:${normalizedEmail}`;
     await redis.set(otpKey, otp, { ex: 300 });
 
     // 5. Send email via Resend
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
       try {
         const { error: resendError } = await resend.emails.send({
           from: 'Toolate <onboarding@resend.dev>', // Resend sandbox default from address
-          to: email,
+          to: normalizedEmail,
           subject: 'Your Toolate OTP Verification Code',
           html: `
             <div style="font-family: sans-serif; padding: 20px; color: #333;">
@@ -57,17 +59,17 @@ export async function POST(req: Request) {
         if (resendError) {
           console.error('Failed to send email via Resend:', resendError);
           // Fallback for development if API key is configured but failing (e.g. sandbox domain issues)
-          console.log(`[DEVELOPMENT FALLBACK] OTP for ${email}: ${otp}`);
+          console.log(`[DEVELOPMENT FALLBACK] OTP for ${normalizedEmail}: ${otp}`);
         }
       } catch (emailError: any) {
         console.error('Failed to send email via Resend:', emailError);
         // Fallback for development if API key is configured but failing (e.g. sandbox domain issues)
-        console.log(`[DEVELOPMENT FALLBACK] OTP for ${email}: ${otp}`);
+        console.log(`[DEVELOPMENT FALLBACK] OTP for ${normalizedEmail}: ${otp}`);
       }
     } else {
       // Log to console if Resend key is missing (for local testing/fallback)
       console.log('--- DEVELOPMENT OTP ---');
-      console.log(`Email: ${email}`);
+      console.log(`Email: ${normalizedEmail}`);
       console.log(`OTP Code: ${otp}`);
       console.log('----------------------');
     }

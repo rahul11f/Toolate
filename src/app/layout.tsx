@@ -50,22 +50,23 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="h-full bg-slate-50">
-      <body className={`${inter.className} min-h-full flex flex-col text-slate-800 antialiased`}>
-        {/* Load Google AdSense scripts dynamically in production */}
-        {process.env.NODE_ENV === 'production' && publisherId && (
-          <Script
+      <head>
+        {/* Google AdSense Auto Ads head script integration */}
+        {publisherId && (
+          <script
             async
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publisherId}`}
             crossOrigin="anonymous"
-            strategy="afterInteractive"
           />
         )}
+      </head>
+      <body className={`${inter.className} min-h-full flex flex-col text-slate-800 antialiased`}>
         <Providers>
           <Navbar />
           <div className="flex-grow flex justify-center w-full max-w-[100vw] overflow-x-hidden relative">
             {/* Left Vertical Banner (Desktop only) */}
             <aside className="hidden xl:block w-40 shrink-0 sticky top-20 self-start p-4 z-10">
-              <AdSensePlaceholder slot="side-banner-left" format="rectangle" className="h-[600px] w-[120px]" />
+              <AdSensePlaceholder slot="side-banner-left" format="rectangle" className="h-[600px] w-[120px]" responsiveMinScreen="xl" />
             </aside>
 
             {/* Main Content Area */}
@@ -75,7 +76,7 @@ export default async function RootLayout({
 
             {/* Right Vertical Banner (Desktop only) */}
             <aside className="hidden xl:block w-40 shrink-0 sticky top-20 self-start p-4 z-10">
-              <AdSensePlaceholder slot="side-banner-right" format="rectangle" className="h-[600px] w-[120px]" />
+              <AdSensePlaceholder slot="side-banner-right" format="rectangle" className="h-[600px] w-[120px]" responsiveMinScreen="xl" />
             </aside>
           </div>
           {/* Sticky footer with bottom banner AdSense placeholder */}

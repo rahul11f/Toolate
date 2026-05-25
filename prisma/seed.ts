@@ -30,9 +30,12 @@ async function main() {
   } else {
     admin = await prisma.user.update({
       where: { email: adminEmail },
-      data: { passwordHash: adminPasswordHash },
+      data: { 
+        passwordHash: adminPasswordHash,
+        role: 'ADMIN'
+      },
     });
-    console.log('Updated existing admin user password:', admin.email);
+    console.log('Updated existing admin user password and set role to ADMIN:', admin.email);
   }
 
   // 3. Seed Regular User

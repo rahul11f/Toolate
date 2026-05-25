@@ -15,6 +15,11 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
+  // Automatically redirect Admin users to the Admin Portal
+  if ((session.user as any).role === 'ADMIN') {
+    redirect('/admin');
+  }
+
   const userId = (session.user as any).id;
 
   // Fetch listings for current user

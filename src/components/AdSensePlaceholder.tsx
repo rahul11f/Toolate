@@ -1,30 +1,51 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface AdSensePlaceholderProps {
   format?: 'auto' | 'fluid' | 'rectangle';
   slot?: string;
   className?: string;
+  responsiveMinScreen?: 'xl' | 'lg' | 'md' | 'sm';
 }
 
 export default function AdSensePlaceholder({
   format = 'auto',
   slot,
   className = '',
+  responsiveMinScreen,
 }: AdSensePlaceholderProps) {
   const publisherId = process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID;
+  const [shouldRender, setShouldRender] = useState(false);
 
   useEffect(() => {
-    // Only load/push Ads in production environments
-    if (process.env.NODE_ENV === 'production' && publisherId) {
+    if (!responsiveMinScreen) {
+      setShouldRender(true);
+      return;
+    }
+
+    const query = responsiveMinScreen === 'xl' ? '(min-width: 1280px)' : '(min-width: 768px)';
+    const media = window.matchMedia(query);
+    setShouldRender(media.matches);
+
+    const listener = (e: MediaQueryListEvent) => {
+      setShouldRender(e.matches);
+    };
+
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [responsiveMinScreen]);
+
+  useEffect(() => {
+    // Only load/push Ads in production environments when the component is marked to render on screen size
+    if (process.env.NODE_ENV === 'production' && publisherId && shouldRender) {
       try {
         ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
       } catch (err) {
         console.error('Google AdSense loading error:', err);
       }
     }
-  }, [publisherId]);
+  }, [publisherId, shouldRender]);
 
   // Display a styled layout preview box for local development
   if (process.env.NODE_ENV !== 'production' || !publisherId) {
@@ -39,6 +60,10 @@ export default function AdSensePlaceholder({
         </span>
       </div>
     );
+  }
+
+  if (!shouldRender) {
+    return null; // Do not render script container or <ins> tag when hidden on this viewport size
   }
 
   return (
