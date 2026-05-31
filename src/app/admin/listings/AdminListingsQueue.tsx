@@ -19,6 +19,8 @@ interface ListingItem {
     name: string | null;
     email: string | null;
   };
+  aiFraudScore?: number | null;
+  aiFraudFlags?: string | null;
 }
 
 interface AdminListingsQueueProps {
@@ -217,6 +219,32 @@ export default function AdminListingsQueue({ initialListings }: AdminListingsQue
                     <span>{listing.price.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
+
+                {listing.aiFraudScore !== undefined && listing.aiFraudScore !== null && listing.aiFraudScore >= 40 && (
+                  <div className="bg-rose-50 border border-rose-100 rounded-xl p-3 text-xs text-rose-800 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold">AI Flagged Scam Risk: {listing.aiFraudScore}%</div>
+                      {listing.aiFraudFlags && (() => {
+                        try {
+                          const flags: string[] = typeof listing.aiFraudFlags === 'string' 
+                            ? JSON.parse(listing.aiFraudFlags) 
+                            : listing.aiFraudFlags;
+                          if (flags && flags.length > 0) {
+                            return (
+                              <ul className="list-disc list-inside mt-1 font-semibold text-rose-600 text-[10px] space-y-0.5">
+                                {flags.map((flag, idx) => (
+                                  <li key={idx}>{flag}</li>
+                                ))}
+                              </ul>
+                            );
+                          }
+                        } catch {}
+                        return null;
+                      })()}
+                    </div>
+                  </div>
+                )}
 
                 <p className="text-xs text-slate-450 leading-relaxed font-medium">
                   Area: {listing.area} | Mapped by: {listing.user.name || 'Anonymous'} ({listing.user.email})

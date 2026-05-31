@@ -61,12 +61,36 @@ export default function TermsPage() {
           We are not responsible for deposits, lease violations, or financial transfers. We advise all users to verify landlords and visit properties physically before committing any funds.
         </p>
 
-        <h2 className="text-xl font-bold text-slate-800 pt-4">5. AdSense & Third-Party Linkage</h2>
+        <h3 className="text-lg font-bold text-slate-800 pt-2">4.1 User Verification Disclaimer</h3>
+        <p>
+          Toolate offers verification badges (e.g., "Verified ID") based on database and document checks. 
+          <strong>Disclaimer:</strong> The verification badge does not represent an endorsement, warranty, or guarantee of a user&apos;s background, safety, reliability, or creditworthiness. 
+          You are solely responsible for conducting your own background checks, roommate compatibility interviews, and physical safety precautions. 
+          Toolate is not liable for any personal conflicts, tenancy disputes, fraud, or thefts arising from transactions with verified or unverified users on the platform.
+        </p>
+
+        <h2 className="text-xl font-bold text-slate-800 pt-4">5. Hotel Room Cost-Sharing & Travel Partner split stay Ads</h2>
+        <p>
+          Users coordinating stays under the "Hotel Room Sharing / Travel Partner" category must upload valid hotel booking confirmations.
+        </p>
+        <ul className="list-disc pl-5 space-y-2">
+          <li><strong>Shared Responsibility</strong>: Both the Lister (Host) and the Requester (Traveler) must be fully ID-verified.</li>
+          <li><strong>Financial Agreements</strong>: Toolate facilitates only connection and vetting of booking receipts. We do not process payments, coordinate escrow, or handle dispute resolution. You are solely responsible for coordinating the split payment directly with your stay partner.</li>
+          <li><strong>Cancellation Policy</strong>: Any hotel booking cancellation, modification, or no-show is governed by the hotel's terms. Toolate is not responsible for any refund claims.</li>
+        </ul>
+
+        <h2 className="text-xl font-bold text-slate-800 pt-4">6. Roommate Stays Coordination & Auto-Expirations</h2>
+        <p>
+          If you specify check-in/out dates under "Room Sharing / Roommate Partner" ads, you agree that your listing is for a temporary coordinate stay.
+          The listing will be automatically marked as expired and removed from public indexes upon the checkout date.
+        </p>
+
+        <h2 className="text-xl font-bold text-slate-800 pt-4">7. AdSense & Third-Party Linkage</h2>
         <p>
           The platform contains third-party AdSense advertising placeholders. Toolate does not endorse the contents of these ads, and clicking them redirects users outside our web environment.
         </p>
 
-        <h2 className="text-xl font-bold text-slate-800 pt-4">6. Special Lodging Rules & Regulations</h2>
+        <h2 className="text-xl font-bold text-slate-800 pt-4">8. Special Lodging Rules & Regulations</h2>
         <p>
           To maintain a safe community directory, specific lodging categories are bound by category-specific regulations:
         </p>

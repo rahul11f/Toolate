@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { ListingStatus, ListingCategory } from '@/lib/types';
-import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock } from 'lucide-react';
+import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock, Calendar, ShieldCheck, UserCheck, Plus, CheckCircle2 } from 'lucide-react';
 import HomeSearchForm from '@/components/HomeSearchForm';
 
 export const revalidate = 60; // Revalidate home page cache every minute
@@ -22,6 +22,47 @@ export default async function HomePage() {
   } catch (error) {
     console.error('Failed to fetch home page listings:', error);
   }
+
+  // Fetch active shared hotel rooms
+  let sharedHotels: any[] = [];
+  try {
+    const dbSharedHotels = await prisma.listing.findMany({
+      where: {
+        status: ListingStatus.APPROVED,
+        category: ListingCategory.HOTEL,
+        isSharedHotelRoom: true,
+        hotelSplitStatus: 'AVAILABLE'
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            documentVerified: true,
+            legalName: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 4,
+    });
+    sharedHotels = dbSharedHotels.map(l => ({
+      ...l,
+      images: typeof l.images === 'string' ? JSON.parse(l.images) : l.images
+    }));
+  } catch (error) {
+    console.error('Failed to fetch home page shared hotels:', error);
+  }
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-IN', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   // Fetch admin SiteSettings
   let settings = null;
@@ -53,10 +94,20 @@ export default async function HomePage() {
     { name: 'Hourly Room', key: ListingCategory.HOURLY_ROOM, count: 'Flexible micro-stays', icon: Clock, bg: 'bg-rose-50 text-rose-600' },
   ];
 
+  const currentMonth = new Date().getMonth();
+  const isPeakMovingSeason = currentMonth === 9 || currentMonth === 0 || currentMonth === 4 || currentMonth === 5; // October, January, May, June
+
   return (
     <div className="space-y-16 pb-12">
+      {isPeakMovingSeason && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white py-3 px-4 text-center font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 rounded-2xl mx-4 sm:mx-6 lg:mx-8 mt-4 animate-fade-in border border-amber-300/20">
+          <span className="animate-bounce">🚨</span>
+          <span>Peak Moving Season Alert: Demand is currently extremely high. Listings are filling up 3x faster. Secure your rental early!</span>
+        </div>
+      )}
+
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white py-20 px-4 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white py-20 px-4 overflow-hidden rounded-2xl mx-4 sm:mx-6 lg:mx-8 mt-4">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_50%)]" />
         <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 backdrop-blur-sm">
@@ -80,14 +131,14 @@ export default async function HomePage() {
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Browse by Category</h2>
           <p className="text-slate-500 mt-1.5 font-medium">Explore specific niches of verified properties</p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+        <div className="flex overflow-x-auto pb-4 scrollbar-none snap-x gap-4 md:grid md:grid-cols-5 md:gap-6">
           {categories.map((cat) => {
             const Icon = cat.icon;
             return (
               <Link
                 key={cat.key}
                 href={`/listings?category=${cat.key}`}
-                className="group p-6 bg-white rounded-2xl border border-slate-100 hover:border-indigo-100 hover:shadow-xl transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left space-y-4"
+                className="flex-shrink-0 w-36 snap-start md:w-auto group p-6 bg-white rounded-2xl border border-slate-100 hover:border-indigo-100 hover:shadow-xl transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left space-y-4"
               >
                 <div className={`p-4 rounded-xl transition-all duration-300 ${cat.bg} group-hover:scale-110`}>
                   <Icon className="w-6 h-6 stroke-[2]" />
@@ -110,7 +161,7 @@ export default async function HomePage() {
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Browse by Location</h2>
           <p className="text-slate-500 mt-1.5 font-medium">Find properties and roommates in popular cities</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="flex overflow-x-auto pb-4 scrollbar-none snap-x gap-4 md:grid md:grid-cols-4 md:gap-6">
           {[
             { city: 'Bangalore', state: 'Karnataka' },
             { city: 'Mumbai', state: 'Maharashtra' },
@@ -120,7 +171,7 @@ export default async function HomePage() {
             <Link
               key={loc.city}
               href={`/listings?city=${loc.city}`}
-              className="group p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-150 hover:bg-white hover:shadow-lg transition-all duration-300 flex items-center justify-between"
+              className="flex-shrink-0 w-44 snap-start md:w-auto group p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-150 hover:bg-white hover:shadow-lg transition-all duration-300 flex items-center justify-between"
             >
               <div>
                 <h4 className="font-bold text-slate-850 group-hover:text-indigo-600 transition">{loc.city}</h4>
@@ -153,7 +204,7 @@ export default async function HomePage() {
             No properties have been listed yet. Check back soon!
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="flex overflow-x-auto pb-4 scrollbar-none snap-x gap-6 md:grid md:grid-cols-3 md:gap-8">
             {latestListings.map((listing) => {
               const isRoommate = listing.category === ListingCategory.ROOMMATE;
               const displayCategory = isRoommate ? 'roommate' : listing.category.toLowerCase();
@@ -161,7 +212,7 @@ export default async function HomePage() {
                 <Link
                   key={listing.id}
                   href={`/listings/${listing.id}`}
-                  className={`group bg-white rounded-2xl overflow-hidden border ${
+                  className={`flex-shrink-0 w-72 snap-start md:w-auto group bg-white rounded-2xl overflow-hidden border ${
                     isRoommate ? 'border-violet-100 hover:border-violet-300' : 'border-slate-100 hover:border-slate-200'
                   } shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col h-full`}
                 >
@@ -222,6 +273,176 @@ export default async function HomePage() {
             })}
           </div>
         )}
+      </section>
+
+      {/* Hotel Cost-Sharing & Co-stay Coordinates Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <span>🤝 Hotel Cost-Sharing & Co-stay Coordinates</span>
+              <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                New
+              </span>
+            </h2>
+            <p className="text-slate-500 mt-1.5 font-medium">
+              Save up to 50% on luxury stays by coordinating with identity-verified travelers.
+            </p>
+          </div>
+          <Link
+            href="/listings?category=HOTEL"
+            className="inline-flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition"
+          >
+            <span>Browse All Hotels</span>
+            <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Grid for Hotel Listings */}
+          <div className="lg:col-span-2 space-y-6">
+            {sharedHotels.length === 0 ? (
+              <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
+                <Hotel className="w-12 h-12 text-slate-300 stroke-[1.5]" />
+                <p className="font-semibold text-slate-550">No active hotel room sharing coordinates yet</p>
+                <p className="text-xs text-slate-400 max-w-sm">Be the first to list your booking and find a trusted companion to split stay costs!</p>
+              </div>
+            ) : (
+              <div className="flex overflow-x-auto pb-4 scrollbar-none snap-x gap-6 md:grid md:grid-cols-2 md:gap-6">
+                {sharedHotels.map((hotel) => {
+                  const splitPrice = hotel.price / 2;
+                  const ownerName = hotel.user?.legalName || hotel.user?.name || 'Anonymous User';
+                  const isVerified = hotel.user?.documentVerified || false;
+                  
+                  return (
+                    <Link
+                      key={hotel.id}
+                      href={`/listings/${hotel.id}`}
+                      className="flex-shrink-0 w-72 snap-start md:w-auto group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-150 hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full animate-fade-in"
+                    >
+                      <div className="p-6 space-y-4">
+                        {/* Hotel Name & Header */}
+                        <div className="space-y-1.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-650 bg-indigo-50/70 px-2 py-0.5 rounded uppercase tracking-wider">
+                            <Hotel className="w-3 h-3" /> Hotel Splitting
+                          </span>
+                          <h3 className="font-bold text-slate-800 text-lg line-clamp-1 group-hover:text-indigo-600 transition">
+                            {hotel.hotelName || hotel.title}
+                          </h3>
+                          <div className="flex items-center text-xs text-slate-400 gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                            <span className="truncate">{hotel.area}, {hotel.city}</span>
+                          </div>
+                        </div>
+
+                        {/* Stay Dates */}
+                        <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between text-xs text-slate-650 font-semibold border border-slate-100">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4 text-indigo-500" />
+                            <span>Stay Period:</span>
+                          </div>
+                          <span className="text-slate-800 font-bold">
+                            {formatDate(hotel.checkInDate)} - {formatDate(hotel.checkOutDate)}
+                          </span>
+                        </div>
+
+                        {/* Price Breakdown */}
+                        <div className="flex items-center justify-between pt-2">
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Price</span>
+                            <span className="text-xs text-slate-500 font-semibold line-through">
+                              ₹{hotel.price.toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-emerald-650 uppercase font-black block">Your 50% Share</span>
+                            <span className="text-lg font-black text-emerald-650 flex items-center justify-end">
+                              <IndianRupee className="w-4 h-4 stroke-[3]" />
+                              <span>{splitPrice.toLocaleString('en-IN')}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lister Verification & Action */}
+                      <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2 max-w-[60%]">
+                          {hotel.user?.image ? (
+                            <img
+                              src={hotel.user.image}
+                              alt={ownerName}
+                              className="w-6 h-6 rounded-full object-cover border border-indigo-100"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                              {ownerName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="truncate">
+                            <span className="font-bold text-slate-700 block truncate text-left">{ownerName}</span>
+                            {isVerified ? (
+                              <span className="text-[9px] font-black text-emerald-600 flex items-center gap-0.5">
+                                <ShieldCheck className="w-3 h-3 fill-emerald-50" /> ID Verified
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-bold text-amber-600">Unverified ID</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <span className="inline-flex items-center gap-1 font-bold text-indigo-600 group-hover:text-indigo-700 transition">
+                          <span>Connect</span>
+                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Premium CTA Side Card */}
+          <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white rounded-2xl p-8 flex flex-col justify-between border border-indigo-500/10 shadow-xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.12),transparent_60%)]" />
+            <div className="space-y-6 relative z-10 text-left">
+              <div className="bg-indigo-500/10 border border-indigo-500/25 p-3 rounded-xl inline-block">
+                <CheckCircle2 className="w-6 h-6 text-indigo-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold tracking-tight">Have a hotel room booked already?</h3>
+                <p className="text-xs text-slate-350 leading-relaxed font-light">
+                  Don't pay the full bill alone! List your booking details securely, verify your profile, and find a verified traveler to share the room and split the cost 50/50.
+                </p>
+              </div>
+
+              <ul className="space-y-2.5 text-xs text-slate-300 font-semibold">
+                <li className="flex items-center gap-2">
+                  <span className="bg-emerald-500/10 text-emerald-400 p-1 rounded-full text-[10px]">✓</span>
+                  <span>100% Secure & Vetted Coordination</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="bg-emerald-500/10 text-emerald-400 p-1 rounded-full text-[10px]">✓</span>
+                  <span>In-App Splits & Real-time Alerts</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="bg-emerald-500/10 text-emerald-400 p-1 rounded-full text-[10px]">✓</span>
+                  <span>Direct Chat & Stay Agreement</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-8 relative z-10">
+              <Link
+                href="/listings/create"
+                className="w-full inline-flex items-center justify-center gap-2 bg-indigo-650 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all duration-300 hover:shadow-indigo-500/10 group"
+              >
+                <Plus className="w-4 h-4" />
+                <span>List Hotel Room to Split</span>
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );

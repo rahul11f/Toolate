@@ -7,6 +7,10 @@ import { z } from 'zod';
 const reviewSchema = z.object({
   rating: z.number().int().min(1, 'Rating must be at least 1 star.').max(5, 'Rating cannot exceed 5 stars.'),
   comment: z.string().min(3, 'Review comment must be at least 3 characters.'),
+  responsiveness: z.number().int().min(1).max(5).optional().nullable(),
+  honesty: z.number().int().min(1).max(5).optional().nullable(),
+  maintenance: z.number().int().min(1).max(5).optional().nullable(),
+  depositReturn: z.number().int().min(1).max(5).optional().nullable(),
 });
 
 export const dynamic = 'force-dynamic';
@@ -86,12 +90,27 @@ export async function POST(
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
+    // Auto-verify tenant: check if user has a confirmed visit booking on this listing
+    const confirmedBooking = await prisma.viewingBooking.findFirst({
+      where: {
+        listingId,
+        tenantId: userId,
+        status: 'CONFIRMED',
+      },
+    });
+    const verifiedTenant = !!confirmedBooking;
+
     const review = await prisma.review.create({
       data: {
         rating: result.data.rating,
         comment: result.data.comment,
         listingId,
         userId,
+        responsiveness: result.data.responsiveness,
+        honesty: result.data.honesty,
+        maintenance: result.data.maintenance,
+        depositReturn: result.data.depositReturn,
+        verifiedTenant,
       },
       include: {
         user: {

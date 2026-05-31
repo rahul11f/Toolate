@@ -62,25 +62,44 @@ export default function PrivacyPage() {
           However, because listings publish your contact numbers publicly to facilitate direct communication, please exercise discretion regarding the details you upload.
         </p>
 
-        <h2 className="text-xl font-bold text-slate-800 pt-4">5. Third-Party Services</h2>
+        <h3 className="text-lg font-bold text-slate-800 pt-2">4.1 Government ID Verification Data & Trusted Badges</h3>
         <p>
-          We utilize third-party free tier APIs:
+          To maintain safety on room roommate coordinates and travel partner stays, users can upload an identity document (Aadhaar, Passport, Voter ID) scan or photo.
         </p>
         <ul className="list-disc pl-5 space-y-2">
-          <li><strong>Google reCAPTCHA v3</strong> to prevent automated spam signups.</li>
-          <li><strong>Google AdSense</strong> placeholders to show contextual advertisement banners.</li>
-          <li><strong>Upstash Redis</strong> for temporary OTP generation and sliding rate limits.</li>
+          <li><strong>Data Stored</strong>: We store the submitted Legal Name, ID number, and the secure document attachment URL on your profile.</li>
+          <li><strong>Duplicate Protection</strong>: Our system scans for duplicate document numbers to block verification fraud.</li>
+          <li><strong>Display Name Matching</strong>: The submitted Legal Name must match your display name exactly. If you change your display name later, your Trusted badge is automatically revoked, and all verification data is purged from the database.</li>
+          <li><strong>Storage Policies</strong>: ID documents are uploaded to our secure storage and are only accessible by verified platform administrators.</li>
         </ul>
 
-        <h2 className="text-xl font-bold text-slate-800 pt-4">6. Category-Specific Data Handling</h2>
+        <h2 className="text-xl font-bold text-slate-800 pt-4">5. Hotel Booking Receipts & Traveler Safety</h2>
         <p>
-          Depending on the lodging category selected, we process specific listing parameters to assist searchers:
+          When you create a listing under the "Hotel Room Sharing / Travel Partner" category, submitting a booking confirmation ID and booking receipt screenshot is mandatory.
+          To ensure traveler safety, these sensitive files and details are ID-locked and are only displayed to other registered users who have a verified Trusted Identity badge.
+        </p>
+
+        <h2 className="text-xl font-bold text-slate-800 pt-4">6. Third-Party Services & Storage</h2>
+        <p>
+          We utilize third-party services to deliver rate-limiting, notifications, and media hosting:
         </p>
         <ul className="list-disc pl-5 space-y-2">
-          <li><strong>Dormitories & Hostels</strong>: Details concerning shared sleeping spaces, lockboxes, and guest occupancy rules.</li>
-          <li><strong>Hotels & Hourly Rooms</strong>: Timing limits, check-in requirements, and local ID requirements.</li>
-          <li><strong>Dharamshalas</strong>: Strict observance of vegetarianism guidelines, pilgrim credentials, and non-commercial community conduct.</li>
+          <li><strong>Cloudinary</strong>: All listing images, avatars, and ID verification document uploads are hosted on Cloudinary to manage storage capacity.</li>
+          <li><strong>Supabase</strong>: Serves as a database provider and fallback storage bucket.</li>
+          <li><strong>Google reCAPTCHA v3 & AdSense</strong>: Protects registration forms and displays contextual advertising blocks.</li>
+          <li><strong>Upstash Redis & Resend</strong>: Handles OTP storage, email code generation, rate limits, and automated listing expiry alerts.</li>
         </ul>
+
+        <h2 className="text-xl font-bold text-slate-800 pt-4">7. Roommate Stay Partner Coordinates & Expirations</h2>
+        <p>
+          Roommate partner listings optionally collect check-in and check-out coordinate stay dates.
+          We use these stay dates to determine listing validity. When your checkout date is reached, the system automatically marks the listing as expired and removes it from public catalog indexes to prevent outdated listings.
+        </p>
+
+        <h2 className="text-xl font-bold text-slate-800 pt-4">8. Permanent Account Purging (Danger Zone)</h2>
+        <p>
+          You can request permanent account deletion from your settings. Doing so deletes all your listings, reviews, messages, document verification records, and payment logs immediately from our servers.
+        </p>
       </div>
     </div>
   );

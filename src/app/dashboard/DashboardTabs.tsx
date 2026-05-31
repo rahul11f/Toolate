@@ -1,18 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardListings from './DashboardListings';
 import ProfileSettings from '@/components/ProfileSettings';
-import { Building, UserCircle, CheckCircle, Clock, PlusCircle } from 'lucide-react';
+import ListingAnalytics from '@/components/ListingAnalytics';
+import DashboardPayments from './DashboardPayments';
+import { Building, UserCircle, CheckCircle, Clock, PlusCircle, BarChart3, IndianRupee } from 'lucide-react';
 import Link from 'next/link';
 
 interface DashboardTabsProps {
   initialListings: any[];
   userName: string;
+  initialTab?: string;
 }
 
-export default function DashboardTabs({ initialListings, userName }: DashboardTabsProps) {
-  const [activeTab, setActiveTab] = useState<'listings' | 'profile'>('listings');
+export default function DashboardTabs({ initialListings, userName, initialTab }: DashboardTabsProps) {
+  const [activeTab, setActiveTab] = useState<'listings' | 'profile' | 'analytics' | 'payments'>(
+    (initialTab as any) || 'listings'
+  );
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab as any);
+    }
+  }, [initialTab]);
 
   // Calculate statistics
   const totalListings = initialListings.length;
@@ -43,6 +54,32 @@ export default function DashboardTabs({ initialListings, userName }: DashboardTa
           </span>
         </button>
         <button
+          onClick={() => setActiveTab('analytics')}
+          className={`pb-4 text-sm font-bold transition-all relative ${
+            activeTab === 'analytics'
+              ? 'text-indigo-600 border-b-2 border-indigo-600'
+              : 'text-slate-400 hover:text-slate-600'
+          } cursor-pointer select-none`}
+        >
+          <span className="flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4" />
+            Listing Analytics
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('payments')}
+          className={`pb-4 text-sm font-bold transition-all relative ${
+            activeTab === 'payments'
+              ? 'text-indigo-600 border-b-2 border-indigo-600'
+              : 'text-slate-400 hover:text-slate-600'
+          } cursor-pointer select-none`}
+        >
+          <span className="flex items-center gap-1.5">
+            <IndianRupee className="w-4 h-4" />
+            Rent Payments
+          </span>
+        </button>
+        <button
           onClick={() => setActiveTab('profile')}
           className={`pb-4 text-sm font-bold transition-all relative ${
             activeTab === 'profile'
@@ -57,7 +94,7 @@ export default function DashboardTabs({ initialListings, userName }: DashboardTa
         </button>
       </div>
 
-      {activeTab === 'listings' ? (
+      {activeTab === 'listings' && (
         <div className="space-y-8">
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -83,7 +120,17 @@ export default function DashboardTabs({ initialListings, userName }: DashboardTa
             <DashboardListings initialListings={initialListings} />
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'analytics' && (
+        <ListingAnalytics listings={initialListings} />
+      )}
+
+      {activeTab === 'payments' && (
+        <DashboardPayments listings={initialListings} />
+      )}
+
+      {activeTab === 'profile' && (
         <div className="max-w-2xl">
           <ProfileSettings />
         </div>

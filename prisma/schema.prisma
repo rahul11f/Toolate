@@ -23,6 +23,18 @@ model User {
   listings      Listing[]
   reviews       Review[]
   sessions      Session[]
+  viewingBookings ViewingBooking[]
+  lifestyleProfile String?
+  areaReviews      AreaReview[]
+  questionsAsked   ListingQA[]
+  rentPayments     RentPayment[]
+  documentVerified Boolean   @default(false)
+  documentStatus   String    @default("UNVERIFIED")
+  documentType     String?
+  legalName        String?
+  documentNumber   String?
+  documentUrl      String?
+  notifications    Notification[]
 }
 
 model Account {
@@ -61,7 +73,7 @@ model VerificationToken {
 }
 
 model Listing {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   title          String
   description    String
   category       String
@@ -75,22 +87,42 @@ model Listing {
   lat            Float
   lng            Float
   area           String
-  state          String   @default("")
-  city           String   @default("")
+  state          String    @default("")
+  city           String    @default("")
   roommateType   String?
   roommateGender String?
-  facilities     String   @default("{}")
+  facilities     String    @default("{}")
   images         String
-  featured       Boolean  @default(false)
-  status         String   @default("PENDING")
+  featured       Boolean   @default(false)
+  status         String    @default("PENDING")
+  foodType       String?   // VEG_ONLY | NON_VEG | JAIN | NO_MEALS (for PG/Hostel)
+  aiFraudScore   Int?      // 0-100 fraud confidence score
+  aiFraudFlags   String?   // JSON array of fraud flags
+  expiresAt      DateTime? // Auto-expiry date
+  priceType      String?   // FREE | PAID | OTHER
+  requireVerification Boolean @default(false)
+  isSharedHotelRoom   Boolean   @default(false)
+  hotelName           String?
+  hotelBookingRef     String?
+  checkInDate         DateTime?
+  checkOutDate        DateTime?
+  hotelBookingProofUrl String?
+  hotelSplitStatus    String    @default("AVAILABLE") // AVAILABLE | REQUESTED | COMPLETED
+  hotelSplitUserId    String?
   userId         String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviews        Review[]
+  viewingSlots    ViewingSlot[]
+  viewingBookings ViewingBooking[]
+  events          ListingEvent[]
+  questions       ListingQA[]
+  rentPayments    RentPayment[]
 
   @@index([userId])
   @@index([status])
+  @@index([category, city])
 }
 
 model AdminLog {
@@ -122,14 +154,19 @@ model SiteSettings {
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  rating    Int
-  comment   String
-  listingId String
-  userId    String
-  createdAt DateTime @default(now())
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  rating          Int
+  comment         String
+  listingId       String
+  userId          String
+  responsiveness  Int?     // 1-5 rating
+  honesty         Int?     // 1-5 rating
+  maintenance     Int?     // 1-5 rating
+  depositReturn   Int?     // 1-5 rating
+  verifiedTenant  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Feedback {
@@ -141,4 +178,99 @@ model Feedback {
   reply     String?
   repliedAt DateTime?
   createdAt DateTime  @default(now())
+}
+
+model ViewingSlot {
+  id         String   @id @default(cuid())
+  listingId  String
+  dayOfWeek  Int      // 0=Sun, 6=Sat
+  startTime  String   // "10:00"
+  endTime    String   // "12:00"
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  bookings   ViewingBooking[]
+}
+
+model ViewingBooking {
+  id        String   @id @default(cuid())
+  slotId    String
+  listingId String
+  tenantId  String
+  date      DateTime
+  message   String?
+  status    String   @default("PENDING") // PENDING | CONFIRMED | CANCELLED
+  createdAt DateTime @default(now())
+  slot      ViewingSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  listing   Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  tenant    User        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model ListingEvent {
+  id        String   @id @default(cuid())
+  listingId String
+  eventType String   // VIEW | INQUIRY | SAVE | SHARE
+  userAgent String?
+  city      String?
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, eventType])
+  @@index([createdAt])
+}
+
+model AreaReview {
+  id                String   @id @default(cuid())
+  city              String
+  area              String
+  userId            String
+  safety            Int      // 1-5
+  waterSupply       String   // 24_7 | TANKER | LIMITED
+  powerCuts         String   // RARE | OCCASIONAL | FREQUENT
+  transport         String   // EXCELLENT | GOOD | POOR
+  market            String   // WALKING | 10_MIN | FAR
+  noise             String   // QUIET | MODERATE | LOUD
+  internetProviders String?  // JSON array
+  comment           String?
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, city, area])
+}
+
+model ListingQA {
+  id         String    @id @default(cuid())
+  listingId  String
+  askedBy    String
+  question   String
+  answer     String?
+  answeredAt DateTime?
+  upvotes    Int       @default(0)
+  createdAt  DateTime  @default(now())
+  listing    Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [askedBy], references: [id], onDelete: Cascade)
+}
+
+model RentPayment {
+  id                 String   @id @default(cuid())
+  tenantUserId       String
+  listingId          String
+  month              Int
+  year               Int
+  amountPaid         Float
+  upiScreenshotUrl   String?
+  landlordConfirmed  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  tenant             User     @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+  listing            Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

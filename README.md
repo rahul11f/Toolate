@@ -52,7 +52,39 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
 
 # 8. Google AdSense Publisher ID
 NEXT_PUBLIC_ADSENSE_PUBLISHER_ID="pub-1234567890123456"
+
+# 9. Cloudinary API Keys (For photos storage mapping, conserves Supabase quota)
+CLOUDINARY_CLOUD_NAME="your_cloudinary_cloud_name"
+CLOUDINARY_API_KEY="your_cloudinary_api_key"
+CLOUDINARY_API_SECRET="your_cloudinary_api_secret"
 ```
+
+---
+
+## Technical Features Implemented
+
+### 🛡️ Identity Verification & Trusted Badges
+* Users can verify their profiles by providing a Legal Name, ID number (Aadhaar, Passport, Voter ID EPIC), and uploading an ID document photo scan.
+* Duplicate ID checks prevent multi-account verification fraud. Changing the profile name automatically revokes the Trusted badge and purges the document metadata.
+
+### 🤝 Hotel Cost-Sharing & Travel Partner Stays
+* Users can post booking details (Hotel name, Booking reference, Check-in/out dates, Price, Booking receipt proof) under the "Hotel Room Sharing / Travel Partner" category.
+* Booking details and receipt attachments are ID-locked (visible to verified users only) for traveler safety. 
+* Travelers can request a co-stay split directly. Hosts can accept/reject split requests to coordinate stays.
+
+### 📅 Room Sharing Stay Partner Ads
+* The "Room Sharing / Roommate Partner" category allows users to specify desired Check-in/out coordinate stay dates.
+* Auto-expiry is built-in; the listing automatically expires on the Checkout date, cleaning up expired ads.
+
+### 💻 Remote Work / WFH Stays
+* Accommodations can be marked as "Optimized for WFH & Remote Employees" specifying rent cycles (daily/weekly/monthly), desk setup, power backups, and internet speed.
+
+### ☁️ Dual-Storage Engine (Cloudinary first with Supabase fallback)
+* To save Supabase free-tier storage, images are uploaded first to Cloudinary using signed SHA-1 signature uploads.
+* If Cloudinary environment parameters are not configured or fail, uploads fall back automatically to the Supabase `listings` bucket.
+
+### 🚨 Danger Zone Account Deletion
+* Users can permanently delete their accounts in the dashboard settings, cascading and purging listings, review feedback, payments, and document scans instantly.
 
 ---
 
@@ -114,3 +146,4 @@ Deploy to Vercel in seconds for free:
    npx prisma generate && next build
    ```
 5. Click **Deploy**.
+

@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { listingRateLimiter } from '@/lib/redis';
 import { z } from 'zod';
 import { ListingCategory, ListingStatus } from '@/lib/types';
+import { detectFraud } from '@/lib/fraud';
 
 // Schema for creating a listing
 const createListingSchema = z.object({
@@ -26,6 +27,13 @@ const createListingSchema = z.object({
   roommateType: z.enum(['HAVE_ROOM', 'NEED_ROOM']).optional().nullable(),
   roommateGender: z.enum(['MALE', 'FEMALE', 'ANY']).optional().nullable(),
   images: z.array(z.string().url()).min(1, 'At least one image is required.').max(5, 'Maximum 5 images allowed.'),
+  requireVerification: z.boolean().optional(),
+  isSharedHotelRoom: z.boolean().optional(),
+  hotelName: z.string().optional().nullable(),
+  hotelBookingRef: z.string().optional().nullable(),
+  checkInDate: z.string().optional().nullable(),
+  checkOutDate: z.string().optional().nullable(),
+  hotelBookingProofUrl: z.string().optional().nullable(),
 });
 
 // GET: Retrieve approved listings with filters
@@ -174,7 +182,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
-    // 4. Insert listing with PENDING status
+    // 4. Extract foodType from facilities if present (for PG/Hostel filtering)
+    let foodType: string | null = null;
+    try {
+      const facilitiesData = body.facilities ? JSON.parse(body.facilities) : {};
+      if (facilitiesData.foodType) {
+        foodType = facilitiesData.foodType;
+      }
+    } catch {}
+
+    // Run fraud detector
+    let aiFraudScore = 0;
+    let aiFraudFlags = '[]';
+    try {
+      const fraudResult = await detectFraud(
+        validationResult.data.title,
+        validationResult.data.description,
+        validationResult.data.price,
+        validationResult.data.contactNumber
+      );
+      aiFraudScore = fraudResult.confidence;
+      aiFraudFlags = JSON.stringify(fraudResult.flags);
+    } catch (err) {
+      console.error('Auto fraud check failed:', err);
+    }
+
+    // Validate hotel room sharing and force verification
+    let requireVerification = validationResult.data.requireVerification || false;
+    if (validationResult.data.category === ListingCategory.HOTEL && validationResult.data.isSharedHotelRoom) {
+      requireVerification = true;
+      if (!validationResult.data.hotelName || !validationResult.data.hotelBookingRef || !validationResult.data.checkInDate || !validationResult.data.checkOutDate || !validationResult.data.hotelBookingProofUrl) {
+        return NextResponse.json({ error: 'All hotel room sharing details and booking proof are required.' }, { status: 400 });
+      }
+    }
+
+    // 5. Insert listing with PENDING status, expires in 60 days
     const listing = await prisma.listing.create({
       data: {
         title: validationResult.data.title,
@@ -195,7 +237,21 @@ export async function POST(req: NextRequest) {
         roommateType: validationResult.data.roommateType,
         roommateGender: validationResult.data.roommateGender,
         images: JSON.stringify(validationResult.data.images),
+        facilities: body.facilities || '{}',
+        foodType,
+        aiFraudScore,
+        aiFraudFlags,
+        expiresAt: validationResult.data.checkOutDate
+          ? new Date(validationResult.data.checkOutDate)
+          : new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days default
         status: ListingStatus.PENDING,
+        requireVerification,
+        isSharedHotelRoom: validationResult.data.isSharedHotelRoom || false,
+        hotelName: validationResult.data.hotelName,
+        hotelBookingRef: validationResult.data.hotelBookingRef,
+        checkInDate: validationResult.data.checkInDate ? new Date(validationResult.data.checkInDate) : null,
+        checkOutDate: validationResult.data.checkOutDate ? new Date(validationResult.data.checkOutDate) : null,
+        hotelBookingProofUrl: validationResult.data.hotelBookingProofUrl,
         user: { connect: { id: userId } },
       },
     });

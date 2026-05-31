@@ -8,10 +8,39 @@ interface ContactDetailsProps {
   contactNumber: string;
   whatsappNumber: string;
   isAuthenticated?: boolean;
+  isRestricted?: boolean;
 }
 
-export default function ContactDetails({ contactNumber, whatsappNumber, isAuthenticated = true }: ContactDetailsProps) {
+export default function ContactDetails({ contactNumber, whatsappNumber, isAuthenticated = true, isRestricted = false }: ContactDetailsProps) {
   const [show, setShow] = useState(false);
+
+  // If ID verification is required and user is unverified
+  if (isAuthenticated && isRestricted) {
+    return (
+      <div className="space-y-4">
+        <div className="relative bg-gradient-to-br from-amber-50/50 to-rose-50/30 border border-amber-100 rounded-xl p-6 text-center space-y-3 overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.06),transparent_70%)]" />
+          <div className="relative z-10 space-y-3">
+            <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+              <Lock className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm">🔒 ID Verification Required</h4>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                The host requires visitors to have a verified identity document badge to view contact details or apply.
+              </p>
+            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-md hover:shadow-lg transition text-sm active:scale-[0.98]"
+            >
+              <span>Verify ID in Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Not authenticated - show locked sign-in prompt
   if (!isAuthenticated) {

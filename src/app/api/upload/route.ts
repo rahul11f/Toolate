@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,35 +53,42 @@ export async function POST(req: NextRequest) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      // Upload to Supabase bucket 'listings'
-      const { data, error } = await supabaseAdmin.storage
-        .from('listings')
-        .upload(fileName, buffer, {
-          contentType: file.type,
-          upsert: false,
-        });
+      // Try Cloudinary first
+      let publicUrl = await uploadToCloudinary(buffer, file.type);
 
-      if (error) {
-        console.error('Supabase upload error details:', error);
-        return NextResponse.json(
-          { error: `Failed to upload image "${file.name}" to storage.` },
-          { status: 500 }
-        );
+      if (!publicUrl) {
+        // Fallback to Supabase bucket 'listings'
+        const { data, error } = await supabaseAdmin.storage
+          .from('listings')
+          .upload(fileName, buffer, {
+            contentType: file.type,
+            upsert: false,
+          });
+
+        if (error) {
+          console.error('Supabase upload error details:', error);
+          return NextResponse.json(
+            { error: `Failed to upload image "${file.name}" to storage.` },
+            { status: 500 }
+          );
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabaseAdmin.storage
+          .from('listings')
+          .getPublicUrl(fileName);
+
+        if (!publicUrlData || !publicUrlData.publicUrl) {
+          return NextResponse.json(
+            { error: `Failed to retrieve public URL for uploaded image "${file.name}".` },
+            { status: 500 }
+          );
+        }
+
+        publicUrl = publicUrlData.publicUrl;
       }
 
-      // Get public URL
-      const { data: publicUrlData } = supabaseAdmin.storage
-        .from('listings')
-        .getPublicUrl(fileName);
-
-      if (!publicUrlData || !publicUrlData.publicUrl) {
-        return NextResponse.json(
-          { error: `Failed to retrieve public URL for uploaded image "${file.name}".` },
-          { status: 500 }
-        );
-      }
-
-      uploadedUrls.push(publicUrlData.publicUrl);
+      uploadedUrls.push(publicUrl);
     }
 
     return NextResponse.json({

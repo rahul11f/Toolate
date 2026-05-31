@@ -1,16 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { Menu, X, PlusCircle, Building, LogOut, LayoutDashboard, Settings, User } from 'lucide-react';
+import { Menu, X, PlusCircle, Building, LogOut, LayoutDashboard, Settings, User, Bell } from 'lucide-react';
 import InstallAppButton from './InstallAppButton';
+import toast from 'react-hot-toast';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Notification states
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => pathname === path;
 
@@ -18,8 +24,77 @@ export default function Navbar() {
     await signOut({ callbackUrl: '/' });
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  };
+
+  // Poll notifications
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchNotifications();
+      const timer = setInterval(fetchNotifications, 15000); // Poll every 15s
+      return () => clearInterval(timer);
+    }
+  }, [status]);
+
+  // Click outside listener for notifications dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const markAllRead = async () => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAll: true }),
+      });
+      if (res.ok) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        toast.success('All notifications marked read');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markOneRead = async (id: string) => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId: id }),
+      });
+      if (res.ok) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   const navLinks = [
     { label: 'Browse Listings', path: '/listings' },
+    { label: 'Market Insights', path: '/insights' },
+    { label: 'About Us', path: '/about' },
   ];
 
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
@@ -61,6 +136,71 @@ export default function Navbar() {
               <span className="text-xs text-slate-400">Loading...</span>
             ) : session?.user ? (
               <div className="flex items-center space-x-4">
+                {/* Notification Bell Dropdown */}
+                <div className="relative" ref={notifRef}>
+                  <button
+                    onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                    type="button"
+                    className="p-2 text-slate-500 hover:text-indigo-650 transition rounded-lg hover:bg-slate-50 cursor-pointer relative"
+                    title="Notifications"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 bg-rose-500 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {showNotifDropdown && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 p-4 space-y-3 max-h-96 overflow-y-auto">
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h4 className="font-extrabold text-slate-800 text-xs uppercase tracking-wider">Recent Alerts</h4>
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllRead}
+                            type="button"
+                            className="text-[10px] text-indigo-600 hover:text-indigo-755 font-bold cursor-pointer"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+
+                      {notifications.length === 0 ? (
+                        <p className="text-[11px] text-slate-400 font-semibold text-center py-6">No notifications yet.</p>
+                      ) : (
+                        <div className="divide-y divide-slate-100 space-y-2.5">
+                          {notifications.map((n) => (
+                            <div
+                              key={n.id}
+                              onClick={() => markOneRead(n.id)}
+                              className={`pt-2.5 first:pt-0 cursor-pointer group text-left ${
+                                !n.read ? 'bg-indigo-50/20 px-2 py-1.5 rounded-lg border border-indigo-100/10' : ''
+                              }`}
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <h5 className={`text-xs font-bold ${!n.read ? 'text-indigo-950 font-black' : 'text-slate-700'}`}>
+                                  {n.title}
+                                </h5>
+                                {!n.read && (
+                                  <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full shrink-0 mt-1.5" />
+                                )}
+                              </div>
+                              <p className="text-[10px] text-slate-500 font-semibold leading-normal mt-1">
+                                {n.message}
+                              </p>
+                              <span className="text-[9px] text-slate-400 font-medium mt-1 block">
+                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <Link
                   href="/dashboard"
                   className={`flex items-center space-x-1.5 text-sm font-medium transition ${
@@ -69,6 +209,14 @@ export default function Navbar() {
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Dashboard</span>
+                </Link>
+
+                <Link
+                  href="/dashboard?tab=profile"
+                  className="flex items-center space-x-1.5 text-sm font-medium text-slate-600 hover:text-indigo-600 transition"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Profile Settings</span>
                 </Link>
 
                 {isAdmin && (
@@ -195,6 +343,29 @@ export default function Navbar() {
                 className="block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition"
               >
                 Dashboard
+              </Link>
+
+              <Link
+                href="/dashboard?tab=profile"
+                onClick={() => setIsOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition"
+              >
+                Profile Settings & Deletion
+              </Link>
+
+              <Link
+                href="/dashboard?tab=profile"
+                onClick={() => {
+                  setIsOpen(false);
+                }}
+                className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-slate-600 hover:bg-slate-55 hover:text-indigo-650 transition cursor-pointer flex items-center justify-between"
+              >
+                <span>Alerts & Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                    {unreadCount} new
+                  </span>
+                )}
               </Link>
 
               {isAdmin && (

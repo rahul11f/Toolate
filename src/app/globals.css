@@ -13,6 +13,18 @@
   --color-indigo-755: #05263C;
   --color-indigo-900: #093C5D;
   --color-indigo-950: #052236;
+
+  /* Custom palette extensions used in layout components */
+  --color-slate-55: #f4f6f9;
+  --color-slate-350: #b2c0d2;
+  --color-slate-455: #64748b;
+  --color-slate-650: #3d4b5f;
+  --color-rose-650: #d01c44;
+  --color-violet-650: #7432e2;
+  --color-purple-650: #8229df;
+  --color-emerald-650: #04884f;
+  --color-amber-650: #d17b05;
+  --color-orange-655: #ea520c;
 }
 
 :root {
@@ -50,4 +62,13 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Hide scrollbars for slick mobile horizontal carousels */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }

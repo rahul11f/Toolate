@@ -8,7 +8,11 @@ import DashboardTabs from './DashboardTabs';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DashboardPage() {
+interface DashboardPageProps {
+  searchParams: Promise<{ tab?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user) {
@@ -19,6 +23,9 @@ export default async function DashboardPage() {
   if ((session.user as any).role === 'ADMIN') {
     redirect('/admin');
   }
+
+  const resolvedParams = await searchParams;
+  const initialTab = resolvedParams.tab || 'listings';
 
   const userId = (session.user as any).id;
 
@@ -43,17 +50,27 @@ export default async function DashboardPage() {
             Welcome back, <span className="text-slate-700 font-semibold">{session.user.name || 'User'}</span>! Manage your property listings and profile here.
           </p>
         </div>
-        <Link
-          href="/listings/create"
-          className="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition select-none cursor-pointer"
-        >
-          <PlusCircle className="w-5 h-5" />
-          <span>Post New Listing</span>
-        </Link>
+        <div className="flex gap-2">
+          {listings.length >= 2 && (
+            <Link
+              href="/dashboard/bulk-import"
+              className="inline-flex items-center space-x-1.5 bg-white border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 font-semibold px-5 py-3 rounded-xl shadow-xs transition select-none cursor-pointer"
+            >
+              <span>Upload CSV</span>
+            </Link>
+          )}
+          <Link
+            href="/listings/create"
+            className="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition select-none cursor-pointer"
+          >
+            <PlusCircle className="w-5 h-5" />
+            <span>Post New Listing</span>
+          </Link>
+        </div>
       </div>
 
       {/* Tabs containing stats, listings and profile settings */}
-      <DashboardTabs initialListings={listings} userName={session.user.name || 'User'} />
+      <DashboardTabs initialListings={listings} userName={session.user.name || 'User'} initialTab={initialTab} />
     </div>
   );
 }

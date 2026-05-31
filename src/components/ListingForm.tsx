@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { ListingCategory } from '@/lib/types';
-import { Building, MapPin, IndianRupee, Clock, ClipboardList, Phone, Image as ImageIcon, Trash2, Search, Loader2 } from 'lucide-react';
+import { Building, MapPin, IndianRupee, Clock, ClipboardList, Phone, Image as ImageIcon, Trash2, Search, Loader2, Upload } from 'lucide-react';
 
 // Dynamic import of LeafletMap to avoid window issues in SSR
 const LeafletMap = dynamic(() => import('./LeafletMap'), {
@@ -24,7 +24,7 @@ const listingSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   category: z.nativeEnum(ListingCategory),
-  price: z.coerce.number().positive('Price must be a positive number.'),
+  price: z.coerce.number().nonnegative('Price must be 0 or positive.'),
   openingHours: z.string().min(1, 'Opening hours are required.'),
   closingHours: z.string().min(1, 'Closing hours are required.'),
   landlordTerms: z.string().min(5, 'Landlord terms must be at least 5 characters.'),
@@ -39,6 +39,14 @@ const listingSchema = z.object({
   roommateType: z.string().optional().nullable(),
   roommateGender: z.string().optional().nullable(),
   images: z.array(z.string().url()).min(1, 'At least one image is required.').max(5, 'Maximum 5 images allowed.'),
+  priceType: z.string().optional().nullable(),
+  requireVerification: z.boolean().optional(),
+  isSharedHotelRoom: z.boolean().optional(),
+  hotelName: z.string().optional().nullable(),
+  hotelBookingRef: z.string().optional().nullable(),
+  checkInDate: z.string().optional().nullable(),
+  checkOutDate: z.string().optional().nullable(),
+  hotelBookingProofUrl: z.string().optional().nullable(),
 });
 
 type ListingFormFields = z.infer<typeof listingSchema>;
@@ -112,6 +120,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors },
   } = useForm<ListingFormFields>({
     resolver: zodResolver(listingSchema) as any,
@@ -137,6 +146,14 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
           images: typeof initialData.images === 'string'
             ? JSON.parse(initialData.images)
             : (Array.isArray(initialData.images) ? initialData.images : []),
+          priceType: initialData.priceType || 'PAID',
+          requireVerification: initialData.requireVerification || false,
+          isSharedHotelRoom: initialData.isSharedHotelRoom || false,
+          hotelName: initialData.hotelName || '',
+          hotelBookingRef: initialData.hotelBookingRef || '',
+          checkInDate: initialData.checkInDate ? new Date(initialData.checkInDate).toISOString().split('T')[0] : '',
+          checkOutDate: initialData.checkOutDate ? new Date(initialData.checkOutDate).toISOString().split('T')[0] : '',
+          hotelBookingProofUrl: initialData.hotelBookingProofUrl || '',
         }
       : {
           title: '',
@@ -157,6 +174,14 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
           roommateType: 'HAVE_ROOM',
           roommateGender: 'ANY',
           images: [],
+          priceType: 'PAID',
+          requireVerification: false,
+          isSharedHotelRoom: false,
+          hotelName: '',
+          hotelBookingRef: '',
+          checkInDate: '',
+          checkOutDate: '',
+          hotelBookingProofUrl: '',
         },
   });
 
@@ -165,6 +190,14 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
   const watchLng = watch('lng') || defaultLng;
   const watchAddress = watch('address') || '';
   const watchCategory = watch('category') || ListingCategory.HOUSE;
+  const watchPriceType = watch('priceType') || 'PAID';
+
+  // Auto-enable Hotel Sharing checkbox when Category is HOTEL
+  useEffect(() => {
+    if (watchCategory === ListingCategory.HOTEL && !isEditMode) {
+      setValue('isSharedHotelRoom', true);
+    }
+  }, [watchCategory, setValue, isEditMode]);
 
   // Close search dropdown on click outside
   useEffect(() => {
@@ -318,11 +351,82 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
     );
   };
 
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+
+  const handleGenerateDescription = async () => {
+    const title = getValues('title');
+    const category = getValues('category');
+    const area = getValues('area');
+    if (!title || !area) {
+      toast.error('Please enter a listing title and area first so AI has some context!');
+      return;
+    }
+
+    setGeneratingDescription(true);
+    setValue('description', '');
+
+    try {
+      const response = await fetch('/api/ai/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          category,
+          price: getValues('price'),
+          city: getValues('city') || '',
+          area,
+          amenities: Object.keys(facilities).filter(key => facilities[key] === true || typeof facilities[key] === 'string'),
+          roommateGender: getValues('roommateGender') || '',
+          roommateType: getValues('roommateType') || '',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      if (!response.body) {
+        throw new Error('No response body stream');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let accumulatedText = '';
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: !done });
+          accumulatedText += chunk;
+          setValue('description', accumulatedText);
+        }
+      }
+      toast.success('Description generated!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to generate description with AI.');
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
   // 5. Submit Form data
   const onSubmit = async (data: ListingFormFields) => {
     setSubmitting(true);
     const endpoint = isEditMode ? `/api/listings/${initialData.id}` : '/api/listings';
     const method = isEditMode ? 'PUT' : 'POST';
+
+    // If it's a shared hotel room, force requireVerification and validate fields
+    if (data.category === ListingCategory.HOTEL && data.isSharedHotelRoom) {
+      data.requireVerification = true;
+      if (!data.hotelName?.trim() || !data.hotelBookingRef?.trim() || !data.checkInDate || !data.checkOutDate || !data.hotelBookingProofUrl) {
+        toast.error('All hotel room sharing details and booking proof are required.');
+        setSubmitting(false);
+        return;
+      }
+    }
 
     try {
       const res = await fetch(endpoint, {
@@ -381,17 +485,21 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
             <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Category</label>
             <select
               {...register('category')}
-              className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition font-semibold"
             >
               {Object.values(ListingCategory).map((cat) => (
                 <option key={cat} value={cat}>
                   {cat === 'ROOMMATE'
-                    ? 'Roommates'
+                    ? 'Room Sharing / Roommate Partner'
+                    : cat === 'HOTEL'
+                    ? 'Hotel Room Sharing / Travel Partner'
                     : cat === 'HOURLY_ROOM'
                     ? 'Hourly Room'
                     : cat === 'COWORKING'
                     ? 'Coworking'
-                    : cat.charAt(0) + cat.slice(1).toLowerCase()}
+                    : cat === 'HOUSE_GUEST'
+                    ? 'House Guest / Homestay'
+                    : cat.charAt(0) + cat.slice(1).toLowerCase().replace('_', ' ')}
                 </option>
               ))}
             </select>
@@ -405,6 +513,8 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                 ? 'Rent per Hour (INR)'
                 : watchCategory === 'DORMITORY'
                 ? 'Rent per Bed/Day (INR)'
+                : watchCategory === 'HOUSE_GUEST'
+                ? 'Stay Cost per Day (INR)'
                 : 'Monthly Rent (INR)'}
             </label>
             <div className="relative">
@@ -412,6 +522,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
               <input
                 type="number"
                 {...register('price')}
+                disabled={watchCategory === 'HOUSE_GUEST' && watchPriceType !== 'PAID'}
                 placeholder={
                   watchCategory === 'ROOMMATE'
                     ? "Expected rent share per person"
@@ -419,9 +530,11 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                     ? "Rent per hour"
                     : watchCategory === 'DORMITORY'
                     ? "Rent per bed/day"
+                    : watchCategory === 'HOUSE_GUEST' && watchPriceType !== 'PAID'
+                    ? "Free/Exchange Stay (₹0)"
                     : "Rent price per month"
                 }
-                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm pl-10 pr-4 py-2.5 rounded-xl outline-hidden transition"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm pl-10 pr-4 py-2.5 rounded-xl outline-hidden transition disabled:opacity-60"
               />
             </div>
             {errors.price && (
@@ -430,37 +543,244 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
           </div>
         </div>
 
-        {/* Roommate Options (Conditional) */}
-        {watchCategory === 'ROOMMATE' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-indigo-50/50 border border-indigo-100/80 rounded-2xl">
+        {/* House Guest Custom Stay Configuration */}
+        {watchCategory === ListingCategory.HOUSE_GUEST && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-indigo-50/50 border border-indigo-100/85 rounded-2xl">
             <div className="space-y-1.5">
-              <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">What is your situation?</label>
+              <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Stay Pricing Model</label>
               <select
-                {...register('roommateType')}
+                {...register('priceType')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'FREE' || val === 'OTHER') {
+                    setValue('price', 0);
+                  }
+                }}
                 className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-medium"
               >
-                <option value="HAVE_ROOM">I have a room/flat, looking for a roommate</option>
-                <option value="NEED_ROOM">I need a room/flat & roommate(s)</option>
+                <option value="PAID">Paid Stay (Daily charge)</option>
+                <option value="FREE">🎁 100% Free Stay (Couchsurfing / Help welcome)</option>
+                <option value="OTHER">🤝 Exchange Stay (Housework, language swap, etc.)</option>
               </select>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Preferred Roommate Gender</label>
-              <select
-                {...register('roommateGender')}
-                className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-medium"
-              >
-                <option value="ANY">Any Gender</option>
-                <option value="MALE">Male Preferred</option>
-                <option value="FEMALE">Female Preferred</option>
-              </select>
+            <div className="space-y-1.5 flex flex-col justify-center">
+              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none mt-4">
+                <input
+                  type="checkbox"
+                  {...register('requireVerification')}
+                  className="w-4 h-4 rounded-sm border-slate-350 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span className="flex items-center gap-1">
+                  <span>🔒 Require ID Verification to apply/view details</span>
+                </span>
+              </label>
+              <p className="text-[10px] text-slate-400 mt-1 pl-6">
+                Only travelers with a verified identity document badge will be allowed to view details.
+              </p>
             </div>
+          </div>
+        )}
+
+        {/* Roommate Options (Conditional) */}
+        {watchCategory === 'ROOMMATE' && (
+          <div className="space-y-4 p-5 bg-indigo-50/50 border border-indigo-100/80 rounded-2xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">What is your situation?</label>
+                <select
+                  {...register('roommateType')}
+                  className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-medium"
+                >
+                  <option value="HAVE_ROOM">I have a room/flat, looking for a roommate</option>
+                  <option value="NEED_ROOM">I need a room/flat & roommate(s)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Preferred Roommate Gender</label>
+                <select
+                  {...register('roommateGender')}
+                  className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-medium"
+                >
+                  <option value="ANY">Any Gender</option>
+                  <option value="MALE">Male Preferred</option>
+                  <option value="FEMALE">Female Preferred</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Optional Stay Partner Duration dates */}
+            <div className="border-t border-indigo-100/50 pt-4 space-y-4">
+              <div>
+                <h5 className="text-xs uppercase font-extrabold text-slate-650 tracking-wider">Stay partner duration (Optional)</h5>
+                <p className="text-[10px] text-slate-400 mt-0.5">Specify when you want to start and conclude your shared coordinate stay. If check-out date is specified, this listing will automatically expire on that date.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Stay Start Date</label>
+                  <input
+                    type="date"
+                    {...register('checkInDate')}
+                    className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Stay End / Expiry Date</label>
+                  <input
+                    type="date"
+                    {...register('checkOutDate')}
+                    className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Hotel Sharing Options (Conditional) */}
+        {watchCategory === ListingCategory.HOTEL && (
+          <div className="space-y-4 p-5 bg-indigo-50/50 border border-indigo-100/80 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center space-x-2.5 text-slate-800 text-sm font-extrabold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  {...register('isSharedHotelRoom')}
+                  className="w-4 h-4 rounded-sm border-slate-350 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>🤝 List as Shared Hotel Room (Split Cost 50/50)</span>
+              </label>
+            </div>
+            
+            {watch('isSharedHotelRoom') && (
+              <div className="space-y-4 pt-2 border-t border-indigo-100/50">
+                <p className="text-xs text-amber-800 font-bold bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                  ⚠️ Security Policy: Hotel room shares require both parties to be ID verified. Uploading a valid booking confirmation proof is mandatory to protect travellers.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Hotel Name</label>
+                    <input
+                      type="text"
+                      {...register('hotelName')}
+                      placeholder="e.g. Radisson Blu MG Road"
+                      className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Confirmation ID</label>
+                    <input
+                      type="text"
+                      {...register('hotelBookingRef')}
+                      placeholder="e.g. BK1234567"
+                      className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Check-In Date</label>
+                    <input
+                      type="date"
+                      {...register('checkInDate')}
+                      className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Check-Out Date</label>
+                    <input
+                      type="date"
+                      {...register('checkOutDate')}
+                      className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* Booking Proof File Upload */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Proof Receipt (Upload Image)</label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-white border border-slate-100 p-4 rounded-xl shadow-2xs">
+                    <label className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-755 border border-slate-200 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition select-none active:scale-95 shrink-0">
+                      <Upload className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Select Booking Receipt Scan</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (!files || files.length === 0) return;
+                          setUploading(true);
+                          const formData = new FormData();
+                          formData.append('file', files[0]);
+                          try {
+                            const res = await fetch('/api/upload', {
+                              method: 'POST',
+                              body: formData,
+                            });
+                            const data = await res.json();
+                            if (!res.ok) {
+                              toast.error(data.error || 'Failed to upload booking proof.');
+                            } else {
+                              setValue('hotelBookingProofUrl', data.urls[0]);
+                              toast.success('Booking proof uploaded successfully!');
+                            }
+                          } catch {
+                            toast.error('Failed to complete upload.');
+                          } finally {
+                            setUploading(false);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    <div className="text-[11px] text-slate-400 font-semibold truncate flex-grow">
+                      {watch('hotelBookingProofUrl') ? (
+                        <span className="text-emerald-600 font-bold">✓ Booking proof uploaded! Ready.</span>
+                      ) : (
+                        'No file uploaded. Upload a screenshot or receipt image.'
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {watch('price') > 0 && (
+                  <p className="text-xs text-indigo-750 font-bold bg-indigo-50 border border-indigo-100/50 p-2.5 rounded-xl">
+                    💰 Splitting cost: Both parties will split the total booking cost of ₹{Number(watch('price')).toLocaleString('en-IN')} 50/50 (₹{(Number(watch('price')) / 2).toLocaleString('en-IN')} each).
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Description */}
         <div className="space-y-1.5">
-          <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Description</label>
+          <div className="flex justify-between items-center">
+            <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Description</label>
+            <button
+              type="button"
+              onClick={handleGenerateDescription}
+              disabled={generatingDescription}
+              className="text-xs font-bold text-indigo-655 hover:text-indigo-700 flex items-center gap-1 cursor-pointer disabled:opacity-50 select-none bg-indigo-50 hover:bg-indigo-100/80 px-2.5 py-1 rounded-lg transition"
+            >
+              {generatingDescription ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <span>✨ Generate with AI</span>
+                </>
+              )}
+            </button>
+          </div>
           <textarea
             rows={5}
             {...register('description')}
@@ -567,6 +887,20 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                   <option value="FURNISHED">Fully Furnished</option>
                   <option value="SEMI_FURNISHED">Semi-Furnished</option>
                   <option value="UNFURNISHED">Unfurnished</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Food / Meals Type</label>
+                <select
+                  value={facilities.foodType || 'NO_MEALS'}
+                  onChange={(e) => handleFacilityChange('foodType', e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-755 font-medium"
+                >
+                  <option value="NO_MEALS">No Meals Included</option>
+                  <option value="VEG_ONLY">🌿 Vegetarian Only</option>
+                  <option value="NON_VEG">🍗 Non-Vegetarian Available</option>
+                  <option value="JAIN">🙏 Jain Food Available</option>
                 </select>
               </div>
             </div>
@@ -1067,6 +1401,207 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                 />
                 <span>Privacy Smart-card Lock</span>
               </label>
+            </div>
+          </div>
+        )}
+
+        {watchCategory === 'HOUSE_GUEST' && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Accommodation Type</label>
+                <select
+                  value={facilities.accommodationType || 'ROOM_ONLY'}
+                  onChange={(e) => handleFacilityChange('accommodationType', e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-755 font-medium"
+                >
+                  <option value="ROOM_ONLY">Private Room Only</option>
+                  <option value="SHARED_ROOM">Shared Room / Roommate setup</option>
+                  <option value="COUCH_SPACE">Couch / Shared space</option>
+                  <option value="FULL_HOUSE">Entire House / Homestay</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Host Status / Setup</label>
+                <select
+                  value={facilities.hostSetup || 'LIVES_WITH_HOST'}
+                  onChange={(e) => handleFacilityChange('hostSetup', e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-755 font-medium"
+                >
+                  <option value="LIVES_WITH_HOST">Host lives on-site (Homestay experience)</option>
+                  <option value="INDEPENDENT">Independent access (Self check-in)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
+              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!facilities.kitchenAccess}
+                  onChange={(e) => handleFacilityChange('kitchenAccess', e.target.checked)}
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>Kitchen Access Allowed</span>
+              </label>
+
+              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!facilities.sharedMeals}
+                  onChange={(e) => handleFacilityChange('sharedMeals', e.target.checked)}
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>Shared Meals Offered</span>
+              </label>
+
+              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!facilities.petsAllowed}
+                  onChange={(e) => handleFacilityChange('petsAllowed', e.target.checked)}
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>Pets Allowed</span>
+              </label>
+
+              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!facilities.localGuiding}
+                  onChange={(e) => handleFacilityChange('localGuiding', e.target.checked)}
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>Local Tips & Guiding</span>
+              </label>
+
+              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!facilities.internet}
+                  onChange={(e) => handleFacilityChange('internet', e.target.checked)}
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>High-Speed Wi-Fi</span>
+              </label>
+
+              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!facilities.washingMachine}
+                  onChange={(e) => handleFacilityChange('washingMachine', e.target.checked)}
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>Washing Machine Access</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* WFH & Employee Stays Section (For House, Flat, PG, Roommate, Hotel, Dormitory) */}
+        {(watchCategory === 'HOUSE' || watchCategory === 'FLAT' || watchCategory === 'PG' || watchCategory === 'ROOMMATE' || watchCategory === 'HOTEL' || watchCategory === 'DORMITORY') && (
+          <div className="border-t border-slate-100 pt-5 space-y-4">
+            <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <Building className="w-4 h-4 text-indigo-500" />
+              <span>Work From Home (WFH) & Employee Stays Suitability</span>
+            </h4>
+            <p className="text-xs text-slate-400 font-medium">
+              List special provisions for remote workers, IT professionals, and corporate guests looking for weekly/monthly stays.
+            </p>
+
+            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!facilities.wfhFriendly}
+                    onChange={(e) => handleFacilityChange('wfhFriendly', e.target.checked)}
+                    className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <span>💻 Optimized for WFH & Remote Employees</span>
+                </label>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking / Rent Cycle Basis</label>
+                  <select
+                    value={facilities.bookingBasis || 'MONTHLY'}
+                    onChange={(e) => handleFacilityChange('bookingBasis', e.target.value)}
+                    className="w-full bg-white border border-slate-200 text-slate-700 text-xs px-3.5 py-2.5 rounded-xl outline-hidden focus:border-indigo-500 transition font-semibold"
+                  >
+                    <option value="MONTHLY">Monthly Basis (Standard Rent)</option>
+                    <option value="WEEKLY">Weekly Basis (Short-term Corporate)</option>
+                    <option value="DAILY">Daily Basis (Flexi-stays)</option>
+                    <option value="FLEXIBLE">Flexible / Negotiable Basis</option>
+                  </select>
+                </div>
+              </div>
+
+              {facilities.wfhFriendly && (
+                <div className="space-y-4 pt-2 border-t border-slate-105/50 animate-fade-in">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">WFH Amenities Provided</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-slate-650 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!facilities.wfhWifi}
+                          onChange={(e) => handleFacilityChange('wfhWifi', e.target.checked)}
+                          className="w-3.5 h-3.5 rounded-sm border-slate-350 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>High-Speed Wi-Fi (100+ Mbps)</span>
+                      </label>
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-slate-655 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!facilities.wfhDesk}
+                          onChange={(e) => handleFacilityChange('wfhDesk', e.target.checked)}
+                          className="w-3.5 h-3.5 rounded-sm border-slate-350 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>Dedicated Desk & Ergonomic Chair</span>
+                      </label>
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-slate-655 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!facilities.wfhPower}
+                          onChange={(e) => handleFacilityChange('wfhPower', e.target.checked)}
+                          className="w-3.5 h-3.5 rounded-sm border-slate-350 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>24/7 Power Backup / UPS</span>
+                      </label>
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-slate-655 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!facilities.wfhQuiet}
+                          onChange={(e) => handleFacilityChange('wfhQuiet', e.target.checked)}
+                          className="w-3.5 h-3.5 rounded-sm border-slate-350 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>Quiet working environment</span>
+                      </label>
+                      <label className="flex items-center space-x-2 text-xs font-semibold text-slate-655 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!facilities.wfhTea}
+                          onChange={(e) => handleFacilityChange('wfhTea', e.target.checked)}
+                          className="w-3.5 h-3.5 rounded-sm border-slate-350 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span>Coffee / Tea access</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Employee Terms & Conditions (e.g. ID Proof, Silence hours, visitors)</label>
+                    <textarea
+                      rows={2}
+                      value={facilities.wfhTerms || ''}
+                      onChange={(e) => handleFacilityChange('wfhTerms', e.target.value)}
+                      placeholder="Specify terms for corporate stays or remote employees..."
+                      className="w-full bg-white border border-slate-205 text-slate-700 text-xs px-3.5 py-2.5 rounded-xl outline-hidden focus:border-indigo-500 transition font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

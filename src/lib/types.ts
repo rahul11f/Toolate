@@ -18,10 +18,12 @@ export enum ListingCategory {
   HOTEL = 'HOTEL',
   DHARAMSHALA = 'DHARAMSHALA',
   HOURLY_ROOM = 'HOURLY_ROOM',
+  HOUSE_GUEST = 'HOUSE_GUEST',
 }
 
 export enum ListingStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  EXPIRED = 'EXPIRED',
 }

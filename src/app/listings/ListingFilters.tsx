@@ -21,7 +21,48 @@ export default function ListingFilters() {
   const [roommateType, setRoommateType] = useState(searchParams.get('roommateType') || '');
   const [roommateGender, setRoommateGender] = useState(searchParams.get('roommateGender') || '');
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'createdAt');
+  const [foodType, setFoodType] = useState(searchParams.get('foodType') || '');
   const [gpsLoading, setGpsLoading] = useState(false);
+
+  // Commute Filter States
+  const [commuteAddress, setCommuteAddress] = useState(searchParams.get('commuteAddress') || '');
+  const [commuteLat, setCommuteLat] = useState(searchParams.get('commuteLat') || '');
+  const [commuteLng, setCommuteLng] = useState(searchParams.get('commuteLng') || '');
+  const [commuteMaxTime, setCommuteMaxTime] = useState(searchParams.get('commuteMaxTime') || '30');
+  const [commuteMode, setCommuteMode] = useState(searchParams.get('commuteMode') || 'driving');
+
+  const [nearMetro, setNearMetro] = useState(searchParams.get('nearMetro') === 'true');
+
+  const [commuteQuery, setCommuteQuery] = useState('');
+  const [commuteResults, setCommuteResults] = useState<any[]>([]);
+  const [commuteSearching, setCommuteSearching] = useState(false);
+  const [showCommuteDropdown, setShowCommuteDropdown] = useState(false);
+
+  // Debounced search logic for commute address API
+  useEffect(() => {
+    if (!commuteQuery || commuteQuery.length < 3) {
+      setCommuteResults([]);
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setCommuteSearching(true);
+      try {
+        const res = await fetch(`/api/geocode/search?q=${encodeURIComponent(commuteQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCommuteResults(data);
+          setShowCommuteDropdown(true);
+        }
+      } catch (err) {
+        console.error('Error fetching commute autocomplete options:', err);
+      } finally {
+        setCommuteSearching(false);
+      }
+    }, 600);
+
+    return () => clearTimeout(delayDebounce);
+  }, [commuteQuery]);
 
   const handleNearbySearch = () => {
     if (!navigator.geolocation) {
@@ -82,6 +123,13 @@ export default function ListingFilters() {
     setRoommateType(searchParams.get('roommateType') || '');
     setRoommateGender(searchParams.get('roommateGender') || '');
     setSortBy(searchParams.get('sortBy') || 'createdAt');
+    setFoodType(searchParams.get('foodType') || '');
+    setCommuteAddress(searchParams.get('commuteAddress') || '');
+    setCommuteLat(searchParams.get('commuteLat') || '');
+    setCommuteLng(searchParams.get('commuteLng') || '');
+    setCommuteMaxTime(searchParams.get('commuteMaxTime') || '30');
+    setCommuteMode(searchParams.get('commuteMode') || 'driving');
+    setNearMetro(searchParams.get('nearMetro') === 'true');
   }, [searchParams]);
 
   const handleApplyFilters = (e: React.FormEvent) => {
@@ -101,7 +149,24 @@ export default function ListingFilters() {
       if (roommateType) params.set('roommateType', roommateType);
       if (roommateGender) params.set('roommateGender', roommateGender);
     }
-    params.set('page', '1'); // Reset to page 1 on filter application
+
+    if ((category === 'PG' || category === 'HOSTEL' || category === 'DORMITORY') && foodType) {
+      params.set('foodType', foodType);
+    }
+
+    if (commuteLat && commuteLng) {
+      params.set('commuteLat', commuteLat);
+      params.set('commuteLng', commuteLng);
+      params.set('commuteAddress', commuteAddress);
+      params.set('commuteMaxTime', commuteMaxTime);
+      params.set('commuteMode', commuteMode);
+    }
+
+    if (nearMetro) {
+      params.set('nearMetro', 'true');
+    }
+
+    params.set('page', '1');
 
     router.push(`/listings?${params.toString()}`);
   };
@@ -116,7 +181,14 @@ export default function ListingFilters() {
     setCity('');
     setRoommateType('');
     setRoommateGender('');
+    setFoodType('');
     setSortBy('createdAt');
+    setCommuteAddress('');
+    setCommuteLat('');
+    setCommuteLng('');
+    setCommuteMaxTime('30');
+    setCommuteMode('driving');
+    setNearMetro(false);
     router.push('/listings');
   };
 
@@ -127,7 +199,7 @@ export default function ListingFilters() {
         <button
           type="button"
           onClick={handleResetFilters}
-          className="flex items-center text-xs text-slate-400 hover:text-indigo-655 transition font-medium cursor-pointer"
+          className="flex items-center text-xs text-slate-400 hover:text-indigo-600 transition font-medium cursor-pointer"
         >
           <RotateCcw className="w-3.5 h-3.5 mr-1" />
           Reset All
@@ -139,7 +211,7 @@ export default function ListingFilters() {
         type="button"
         onClick={handleNearbySearch}
         disabled={gpsLoading}
-        className="w-full flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-650 font-bold py-3 rounded-xl transition shadow-xs text-xs cursor-pointer select-none disabled:bg-slate-100 disabled:text-slate-400"
+        className="w-full flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold py-3 rounded-xl transition shadow-xs text-xs cursor-pointer select-none disabled:bg-slate-100 disabled:text-slate-400"
       >
         {gpsLoading ? (
           <>
@@ -148,7 +220,7 @@ export default function ListingFilters() {
           </>
         ) : (
           <>
-            <MapPin className="w-4 h-4 text-indigo-650" />
+            <MapPin className="w-4 h-4 text-indigo-600" />
             <span>Find Rooms Nearby (My GPS)</span>
           </>
         )}
@@ -167,6 +239,110 @@ export default function ListingFilters() {
             className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm pl-10 pr-4 py-2.5 rounded-xl outline-hidden transition"
           />
         </div>
+      </div>
+
+      {/* Commute Time Filter Section */}
+      <div className="p-4 bg-violet-50/40 border border-violet-100 rounded-xl space-y-4 relative">
+        <div className="flex items-center gap-1.5 text-indigo-700 text-xs font-bold uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+          <span>📍 Filter by Commute</span>
+        </div>
+
+        <div className="space-y-1.5 relative">
+          <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Office/Landmark Address</label>
+          <div className="relative">
+            <input
+              type="text"
+              value={commuteAddress || commuteQuery}
+              onChange={(e) => {
+                setCommuteAddress('');
+                setCommuteQuery(e.target.value);
+                setShowCommuteDropdown(true);
+              }}
+              placeholder="Search office or college..."
+              className="w-full bg-white border border-slate-200 text-xs px-3 py-2.5 rounded-lg outline-hidden transition font-medium"
+            />
+            {commuteSearching && (
+              <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin absolute right-3 top-3" />
+            )}
+          </div>
+
+          {/* Autocomplete dropdown */}
+          {showCommuteDropdown && commuteResults.length > 0 && (
+            <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-150 rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-50 text-xs">
+              {commuteResults.map((opt) => (
+                <button
+                  key={opt.place_id}
+                  type="button"
+                  onClick={() => {
+                    setCommuteAddress(opt.display_name);
+                    setCommuteLat(opt.lat);
+                    setCommuteLng(opt.lon);
+                    setCommuteQuery('');
+                    setCommuteResults([]);
+                    setShowCommuteDropdown(false);
+                    toast.success('Commute destination set!');
+                  }}
+                  className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 transition line-clamp-2 text-slate-650 font-medium"
+                >
+                  {opt.display_name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {commuteAddress && (
+            <p className="text-[9px] text-emerald-600 font-bold uppercase flex items-center gap-1 mt-1">
+              <span>✅ Destination Marked</span>
+            </p>
+          )}
+        </div>
+
+        {commuteLat && commuteLng && (
+          <>
+            {/* Mode selection */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Commute Mode</label>
+              <div className="grid grid-cols-3 gap-1">
+                {[
+                  { value: 'driving', label: '🚗 Car' },
+                  { value: 'bike', label: '🏍️ Bike' },
+                  { value: 'walking', label: '🚶 Walk' },
+                ].map((modeOpt) => (
+                  <button
+                    key={modeOpt.value}
+                    type="button"
+                    onClick={() => setCommuteMode(modeOpt.value)}
+                    className={`py-1.5 rounded-lg text-[10px] font-bold transition cursor-pointer border ${
+                      commuteMode === modeOpt.value
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                    }`}
+                  >
+                    {modeOpt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Slider */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                <span>Max Commute Time</span>
+                <span className="text-indigo-700 font-extrabold font-mono">{commuteMaxTime} Mins</span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="60"
+                step="5"
+                value={commuteMaxTime}
+                onChange={(e) => setCommuteMaxTime(e.target.value)}
+                className="w-full accent-indigo-600 h-1.5 bg-slate-100 rounded-lg cursor-pointer"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Category Dropdown */}
@@ -196,7 +372,7 @@ export default function ListingFilters() {
       {/* Roommate-specific Filters (Conditional) */}
       {category === 'ROOMMATE' && (
         <div className="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl space-y-4">
-          <div className="flex items-center gap-1.5 text-indigo-755 text-xs font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 text-indigo-600 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Roommate Criteria</span>
           </div>
@@ -230,38 +406,72 @@ export default function ListingFilters() {
         </div>
       )}
 
+      {/* Food Type Filter - PG/Hostel/Dormitory Only */}
+      {(category === 'PG' || category === 'HOSTEL' || category === 'DORMITORY') && (
+        <div className="p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl space-y-3">
+          <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+            <span>🍽️</span>
+            <span>Food Preference</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: '', label: 'All', emoji: '' },
+              { value: 'VEG_ONLY', label: 'Veg Only', emoji: '🌿' },
+              { value: 'NON_VEG', label: 'Non-Veg', emoji: '🍗' },
+              { value: 'JAIN', label: 'Jain', emoji: '🙏' },
+              { value: 'NO_MEALS', label: 'No Meals', emoji: '🚫' },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setFoodType(opt.value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer select-none border ${
+                  foodType === opt.value
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'
+                }`}
+              >
+                {opt.emoji} {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* State Filter */}
       <div className="space-y-1.5">
         <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">State</label>
-        <select
+        <input
+          type="text"
           value={state}
           onChange={(e) => setState(e.target.value)}
-          className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition"
-        >
-          <option value="">All States</option>
+          list="states-datalist"
+          placeholder="Type or select State..."
+          className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition font-medium"
+        />
+        <datalist id="states-datalist">
           {statesList.map((st) => (
-            <option key={st} value={st}>
-              {st}
-            </option>
+            <option key={st} value={st} />
           ))}
-        </select>
+        </datalist>
       </div>
 
       {/* City Filter */}
       <div className="space-y-1.5">
         <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">City</label>
-        <select
+        <input
+          type="text"
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition"
-        >
-          <option value="">All Cities</option>
+          list="cities-datalist"
+          placeholder="Type or select City..."
+          className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition font-medium"
+        />
+        <datalist id="cities-datalist">
           {citiesList.map((ct) => (
-            <option key={ct} value={ct}>
-              {ct}
-            </option>
+            <option key={ct} value={ct} />
           ))}
-        </select>
+        </datalist>
       </div>
 
       {/* Location Area Search */}
@@ -321,6 +531,20 @@ export default function ListingFilters() {
           <option value="price_desc">Price: High to Low</option>
           <option value="createdAt_asc">Oldest Additions</option>
         </select>
+      </div>
+
+      {/* Near Metro Station Toggle */}
+      <div className="flex items-center gap-2 pt-2 pb-1">
+        <input
+          type="checkbox"
+          id="nearMetro"
+          checked={nearMetro}
+          onChange={(e) => setNearMetro(e.target.checked)}
+          className="w-4 h-4 rounded border-slate-350 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+        />
+        <label htmlFor="nearMetro" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+          🚇 Near Metro Station (within 1.5km)
+        </label>
       </div>
 
       <button
