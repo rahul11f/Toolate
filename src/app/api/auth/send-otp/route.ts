@@ -44,8 +44,11 @@ export async function POST(req: Request) {
     let emailSent = false;
     if (process.env.RESEND_API_KEY) {
       try {
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const formattedFrom = fromEmail.includes('<') ? fromEmail : `Toolate <${fromEmail}>`;
+
         const { error: resendError } = await resend.emails.send({
-          from: 'Toolate <onboarding@resend.dev>', // Resend sandbox default from address
+          from: formattedFrom,
           to: normalizedEmail,
           subject: 'Your Toolate OTP Verification Code',
           html: `
