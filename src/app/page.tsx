@@ -6,6 +6,7 @@ import HomeSearchForm from '@/components/HomeSearchForm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import ListingConnectTrigger from '@/components/ListingConnectTrigger';
+import SafeImage from '@/components/SafeImage';
 
 export const revalidate = 60; // Revalidate home page cache every minute
 
@@ -272,50 +273,38 @@ export default async function HomePage() {
                     className="absolute inset-0 z-10"
                     aria-label={listing.title}
                   />
-                  <div className="relative h-48 bg-slate-100 overflow-hidden">
-                    {listing.images && listing.images.length > 0 ? (
-                      <img
-                        src={listing.images[0]}
-                        alt={listing.title}
-                        crossOrigin="anonymous"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
-                        {isRoommate ? (
-                          <Users className="w-12 h-12 text-violet-400 stroke-[1.5]" />
-                        ) : (
-                          <Building className="w-12 h-12 text-slate-400 stroke-[1.5]" />
-                        )}
-                      </div>
-                    )}
-                    <span className={`absolute top-4 left-4 ${
-                      isRoommate ? 'bg-violet-650' : 'bg-indigo-650'
-                    } text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-md uppercase tracking-wider`}>
+                  <div className="relative aspect-[4/3] w-full bg-slate-50 overflow-hidden rounded-t-2xl">
+                    <SafeImage
+                      src={listing.images && listing.images.length > 0 ? listing.images[0] : null}
+                      alt={listing.title}
+                      category={listing.category}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-md text-slate-800 text-[9px] font-black px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-wider z-20">
                       {displayCategory}
                     </span>
                     {listing.featured && (
-                      <span className="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-550 text-white text-[9px] font-black px-2.5 py-0.5 rounded-md shadow-md uppercase tracking-wider">
+                      <span className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-orange-550 text-white text-[9px] font-black px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-wider z-20">
                         ⭐ Featured
                       </span>
                     )}
 
                     {/* Shared Accommodation Badges */}
-                    <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-25">
+                    <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-20">
                       {listing.category === 'ROOMMATE' && (
-                        <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                        <span className="bg-slate-950/70 backdrop-blur-xs text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-white/10">
                           {listing.roommateType === 'HAVE_ROOM' ? 'Has Room' : 'Needs Room'}
                         </span>
                       )}
                       {listing.roommateGender && (
-                        <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                        <span className="bg-slate-950/70 backdrop-blur-xs text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-white/10">
                           {listing.roommateGender === 'MALE' ? '♂ Male Pref.' :
                            listing.roommateGender === 'FEMALE' ? '♀ Female Pref.' :
                            '🚻 Any Gender'}
                         </span>
                       )}
                       {listing.category === 'HOTEL' && listing.isSharedHotelRoom && (
-                        <span className="bg-indigo-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                        <span className="bg-indigo-600/90 text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-white/10">
                           {listing.parsedFacilities?.isAlreadyBooked === false ? '🔍 Co-Stay Query' : '🏨 Hotel Share'}
                         </span>
                       )}
@@ -413,37 +402,31 @@ export default async function HomePage() {
                         className="absolute inset-0 z-10"
                         aria-label={hotel.hotelName || hotel.title}
                       />
-                      <div className="relative h-40 bg-slate-100 overflow-hidden">
-                        {hotel.images && hotel.images.length > 0 ? (
-                          <img
-                            src={hotel.images[0]}
-                            alt={hotel.hotelName || hotel.title}
-                            crossOrigin="anonymous"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
-                            <Hotel className="w-10 h-10 text-indigo-450 stroke-[1.5]" />
-                          </div>
-                        )}
-                        <span className={`absolute top-3 left-3 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1 ${
+                      <div className="relative aspect-[4/3] w-full bg-slate-50 overflow-hidden rounded-t-2xl">
+                        <SafeImage
+                          src={hotel.images && hotel.images.length > 0 ? hotel.images[0] : null}
+                          alt={hotel.hotelName || hotel.title}
+                          category="HOTEL"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <span className={`absolute top-3 left-3 text-white text-[9px] font-black px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-wider flex items-center gap-1 z-20 ${
                           hotel.parsedFacilities?.isAlreadyBooked === false ? 'bg-violet-600' : 'bg-indigo-650'
                         }`}>
                           {hotel.parsedFacilities?.isAlreadyBooked === false ? (
                             <>
-                              <Compass className="w-3 h-3" /> Co-Stay Query
+                              <Compass className="w-3.5 h-3.5" /> Co-Stay Query
                             </>
                           ) : (
                             <>
-                              <Hotel className="w-3 h-3" /> Hotel Splitting
+                              <Hotel className="w-3.5 h-3.5" /> Hotel Share
                             </>
                           )}
                         </span>
 
                         {/* Shared Accommodation Badges */}
-                        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-25">
+                        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-20">
                           {hotel.roommateGender && (
-                            <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                            <span className="bg-slate-950/70 backdrop-blur-xs text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-white/10">
                               {hotel.roommateGender === 'MALE' ? '♂ Male Pref.' :
                                hotel.roommateGender === 'FEMALE' ? '♀ Female Pref.' :
                                '🚻 Any Gender'}

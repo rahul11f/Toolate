@@ -11,6 +11,7 @@ import CompareBar from '@/components/CompareBar';
 import { getNearbyTransit } from '@/lib/transit';
 import { calculateCompatibility } from '@/lib/roommateMatcher';
 import ListingConnectTrigger from '@/components/ListingConnectTrigger';
+import SafeImage from '@/components/SafeImage';
 
 interface ListingsPageProps {
   searchParams: Promise<{
@@ -383,6 +384,52 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
   const totalPages = Math.ceil(total / limit);
 
+  // Active Filter Chips Logic
+  const activeFiltersList: { label: string; paramKey: string; removeUrl: string }[] = [];
+
+  const createRemoveFilterUrl = (keyToRemove: string) => {
+    const params = new URLSearchParams();
+    if (query && keyToRemove !== 'query') params.set('query', query);
+    if (category && keyToRemove !== 'category') params.set('category', category);
+    if (area && keyToRemove !== 'area') params.set('area', area);
+    if (state && keyToRemove !== 'state') params.set('state', state);
+    if (city && keyToRemove !== 'city') params.set('city', city);
+    if (roommateType && keyToRemove !== 'roommateType') params.set('roommateType', roommateType);
+    if (roommateGender && keyToRemove !== 'roommateGender') params.set('roommateGender', roommateGender);
+    if (foodType && keyToRemove !== 'foodType') params.set('foodType', foodType);
+    if (minPrice !== undefined && keyToRemove !== 'minPrice') params.set('minPrice', minPrice.toString());
+    if (maxPrice !== undefined && keyToRemove !== 'maxPrice') params.set('maxPrice', maxPrice.toString());
+    if (nearMetro && keyToRemove !== 'nearMetro') params.set('nearMetro', 'true');
+    if (commuteLat !== undefined && keyToRemove !== 'commute') {
+      params.set('commuteLat', commuteLat.toString());
+      params.set('commuteLng', commuteLng.toString());
+      params.set('commuteAddress', commuteAddress || '');
+      params.set('commuteMaxTime', commuteMaxTime.toString());
+      params.set('commuteMode', commuteMode);
+    }
+    if (lat !== undefined && keyToRemove !== 'gps') {
+      params.set('lat', lat.toString());
+      params.set('lng', lng.toString());
+      params.set('radius', radius.toString());
+    }
+    if (sortBy) params.set('sortBy', sortBy);
+    if (layout) params.set('layout', layout);
+    params.set('page', '1');
+    return `/listings?${params.toString()}`;
+  };
+
+  if (query) activeFiltersList.push({ label: `"${query}"`, paramKey: 'query', removeUrl: createRemoveFilterUrl('query') });
+  if (category) activeFiltersList.push({ label: `Category: ${category}`, paramKey: 'category', removeUrl: createRemoveFilterUrl('category') });
+  if (city) activeFiltersList.push({ label: `City: ${city}`, paramKey: 'city', removeUrl: createRemoveFilterUrl('city') });
+  if (area) activeFiltersList.push({ label: `Area: ${area}`, paramKey: 'area', removeUrl: createRemoveFilterUrl('area') });
+  if (roommateGender) activeFiltersList.push({ label: `Gender: ${roommateGender}`, paramKey: 'roommateGender', removeUrl: createRemoveFilterUrl('roommateGender') });
+  if (foodType) activeFiltersList.push({ label: `Food: ${foodType}`, paramKey: 'foodType', removeUrl: createRemoveFilterUrl('foodType') });
+  if (minPrice !== undefined) activeFiltersList.push({ label: `Min: ₹${minPrice}`, paramKey: 'minPrice', removeUrl: createRemoveFilterUrl('minPrice') });
+  if (maxPrice !== undefined) activeFiltersList.push({ label: `Max: ₹${maxPrice}`, paramKey: 'maxPrice', removeUrl: createRemoveFilterUrl('maxPrice') });
+  if (nearMetro) activeFiltersList.push({ label: '🚇 Near Metro', paramKey: 'nearMetro', removeUrl: createRemoveFilterUrl('nearMetro') });
+  if (commuteLat !== undefined) activeFiltersList.push({ label: `🚗 Near ${commuteAddress ? commuteAddress.split(',')[0] : 'Work'}`, paramKey: 'commute', removeUrl: createRemoveFilterUrl('commute') });
+  if (lat !== undefined) activeFiltersList.push({ label: '📍 GPS', paramKey: 'gps', removeUrl: createRemoveFilterUrl('gps') });
+
   // Helper to construct paginated URLs
   const getPaginationUrl = (pageNumber: number) => {
     const params = new URLSearchParams();
@@ -495,6 +542,33 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
             </div>
           </div>
 
+          {/* Active Filter Chips */}
+          {activeFiltersList.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 bg-white/70 backdrop-blur-md border border-slate-100 p-3 rounded-xl shadow-2xs animate-fade-in select-none">
+              <span className="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider pl-1 mr-1">
+                Filters:
+              </span>
+              {activeFiltersList.map((chip, idx) => (
+                <Link
+                  key={idx}
+                  href={chip.removeUrl}
+                  className="inline-flex items-center gap-1.5 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-100 px-3 py-1.5 rounded-full text-xs font-bold shadow-2xs transition active:scale-95 group shrink-0"
+                >
+                  <span>{chip.label}</span>
+                  <span className="w-3.5 h-3.5 rounded-full bg-slate-100 group-hover:bg-rose-100 flex items-center justify-center text-[9px] font-black text-slate-400 group-hover:text-rose-500 leading-none">
+                    ✕
+                  </span>
+                </Link>
+              ))}
+              <Link
+                href="/listings"
+                className="text-xs font-bold text-indigo-650 hover:text-indigo-700 pl-2 select-none hover:underline"
+              >
+                Clear All
+              </Link>
+            </div>
+          )}
+
           {listings.length === 0 ? (
             <div className="bg-white border border-slate-100 rounded-2xl p-16 text-center text-slate-400">
               No matching listings were found. Adjust your filters or reset search parameters.
@@ -522,27 +596,17 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         />
                         {/* Compact Thumbnail (80x80px) */}
                         <div className="relative w-20 h-20 bg-slate-50 rounded-lg overflow-hidden shrink-0">
-                          {listing.images && listing.images.length > 0 ? (
-                            <img
-                              src={listing.images[0]}
-                              alt={listing.title}
-                              crossOrigin="anonymous"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
-                              {isRoommate ? (
-                                <Users className="w-6 h-6 text-violet-400" />
-                              ) : (
-                                <Building className="w-6 h-6 text-slate-400" />
-                              )}
-                            </div>
-                          )}
+                          <SafeImage
+                            src={listing.images && listing.images.length > 0 ? listing.images[0] : null}
+                            alt={listing.title}
+                            category={listing.category}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
+                          />
                           
                           {/* Small Category Indicator */}
                           <span className={`absolute bottom-0 left-0 right-0 ${
-                            isRoommate ? 'bg-violet-600/90' : 'bg-indigo-600/90'
-                          } text-white text-[7px] font-bold py-0.5 text-center uppercase tracking-wide select-none`}>
+                            isRoommate ? 'bg-violet-650/90' : 'bg-indigo-650/90'
+                          } text-white text-[7px] font-bold py-0.5 text-center uppercase tracking-wide select-none z-20`}>
                             {listing.category === 'HOTEL' && listing.isSharedHotelRoom
                               ? (listing.parsedFacilities?.isAlreadyBooked === false ? 'Co-Stay' : 'Hotel Share')
                               : displayCategory}
@@ -645,28 +709,16 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         aria-label={listing.title}
                       />
                     {/* Header Image */}
-                    <div className="relative h-44 bg-slate-100 overflow-hidden">
-                      {listing.images && listing.images.length > 0 ? (
-                        <img
-                          src={listing.images[0]}
-                          alt={listing.title}
-                          crossOrigin="anonymous"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
-                          {isRoommate ? (
-                            <Users className="w-12 h-12 text-violet-400 stroke-[1.5]" />
-                          ) : (
-                            <Building className="w-12 h-12 text-slate-400 stroke-[1.5]" />
-                          )}
-                        </div>
-                      )}
+                    <div className="relative aspect-[4/3] w-full bg-slate-50 overflow-hidden rounded-t-2xl">
+                      <SafeImage
+                        src={listing.images && listing.images.length > 0 ? listing.images[0] : null}
+                        alt={listing.title}
+                        category={listing.category}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
 
                       {/* Category Badge */}
-                      <span className={`absolute top-4 left-4 ${
-                        isRoommate ? 'bg-violet-600' : 'bg-indigo-600'
-                      } text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-md uppercase select-none`}>
+                      <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-md text-slate-800 text-[9px] font-black px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-wider z-20">
                         {listing.category === 'HOTEL' && listing.isSharedHotelRoom
                           ? (listing.parsedFacilities?.isAlreadyBooked === false ? '🔍 Co-Stay Query' : '🏨 Hotel Share')
                           : displayCategory}
@@ -674,27 +726,27 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
                       {/* Featured Badge */}
                       {listing.featured && (
-                        <span className="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-550 text-white text-[9px] font-black px-2.5 py-0.5 rounded-md shadow-md uppercase tracking-wider animate-pulse select-none">
+                        <span className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-orange-550 text-white text-[9px] font-black px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-wider z-20">
                           ⭐ Featured
                         </span>
                       )}
 
                       {/* Shared Accommodation Badges */}
-                      <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-25">
+                      <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-20">
                         {listing.category === 'ROOMMATE' && (
-                          <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                          <span className="bg-slate-950/70 backdrop-blur-xs text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-white/10">
                             {listing.roommateType === 'HAVE_ROOM' ? 'Has Room' : 'Needs Room'}
                           </span>
                         )}
                         {listing.roommateGender && (
-                          <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                          <span className="bg-slate-950/70 backdrop-blur-xs text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-white/10">
                             {listing.roommateGender === 'MALE' ? '♂ Male Pref.' :
                              listing.roommateGender === 'FEMALE' ? '♀ Female Pref.' :
                              '🚻 Any Gender'}
                           </span>
                         )}
                         {listing.category === 'HOTEL' && listing.isSharedHotelRoom && (
-                          <span className="bg-indigo-650/90 text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase font-semibold">
+                          <span className="bg-indigo-600/90 text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-wider border border-white/10">
                             {listing.parsedFacilities?.isAlreadyBooked === false ? '🔍 Co-Stay' : '🏨 Hotel Split'}
                           </span>
                         )}
@@ -702,14 +754,14 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
                       {/* Food Type Badge for PG/Hostel/Dormitory */}
                       {listing.foodType && (listing.category === 'PG' || listing.category === 'HOSTEL' || listing.category === 'DORMITORY') && (
-                        <div className="absolute bottom-3 right-3">
-                          <span className={`text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase backdrop-blur-xs shadow-sm ${
-                            listing.foodType === 'VEG_ONLY' ? 'bg-emerald-600/90 text-white' :
-                            listing.foodType === 'JAIN' ? 'bg-amber-500/90 text-white' :
-                            listing.foodType === 'NON_VEG' ? 'bg-orange-500/90 text-white' :
-                            'bg-slate-700/70 text-white'
+                        <div className="absolute bottom-3 right-3 z-20">
+                          <span className={`text-[8.5px] font-black px-2 py-1 rounded-md uppercase backdrop-blur-xs border border-white/10 shadow-sm ${
+                            listing.foodType === 'VEG_ONLY' ? 'bg-emerald-600/95 text-white' :
+                            listing.foodType === 'JAIN' ? 'bg-amber-500/95 text-white' :
+                            listing.foodType === 'NON_VEG' ? 'bg-orange-500/95 text-white' :
+                            'bg-slate-950/70 text-white'
                           }`}>
-                            {listing.foodType === 'VEG_ONLY' ? '🌿 Veg Only' :
+                            {listing.foodType === 'VEG_ONLY' ? '🌿 Veg' :
                              listing.foodType === 'JAIN' ? '🙏 Jain' :
                              listing.foodType === 'NON_VEG' ? '🍗 Non-Veg' :
                              '🚫 No Meals'}

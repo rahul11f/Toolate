@@ -39,13 +39,13 @@ export default function DashboardTabs({ initialListings, userName, initialTab }:
   return (
     <div className="space-y-8">
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-100 gap-6">
+      <div className="flex border-b border-slate-150 gap-6 overflow-x-auto scrollbar-none snap-x pb-0.5">
         <button
           onClick={() => setActiveTab('listings')}
-          className={`pb-4 text-sm font-bold transition-all relative ${
+          className={`pb-3 text-sm font-bold transition-all relative shrink-0 snap-start ${
             activeTab === 'listings'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-slate-400 hover:text-slate-600'
+              ? 'text-indigo-605 border-b-2 border-indigo-600'
+              : 'text-slate-400 hover:text-slate-650'
           } cursor-pointer select-none`}
         >
           <span className="flex items-center gap-1.5">
@@ -55,10 +55,10 @@ export default function DashboardTabs({ initialListings, userName, initialTab }:
         </button>
         <button
           onClick={() => setActiveTab('analytics')}
-          className={`pb-4 text-sm font-bold transition-all relative ${
+          className={`pb-3 text-sm font-bold transition-all relative shrink-0 snap-start ${
             activeTab === 'analytics'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-slate-400 hover:text-slate-600'
+              ? 'text-indigo-605 border-b-2 border-indigo-600'
+              : 'text-slate-400 hover:text-slate-650'
           } cursor-pointer select-none`}
         >
           <span className="flex items-center gap-1.5">
@@ -68,10 +68,10 @@ export default function DashboardTabs({ initialListings, userName, initialTab }:
         </button>
         <button
           onClick={() => setActiveTab('payments')}
-          className={`pb-4 text-sm font-bold transition-all relative ${
+          className={`pb-3 text-sm font-bold transition-all relative shrink-0 snap-start ${
             activeTab === 'payments'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-slate-400 hover:text-slate-600'
+              ? 'text-indigo-605 border-b-2 border-indigo-600'
+              : 'text-slate-400 hover:text-slate-650'
           } cursor-pointer select-none`}
         >
           <span className="flex items-center gap-1.5">
@@ -81,10 +81,10 @@ export default function DashboardTabs({ initialListings, userName, initialTab }:
         </button>
         <button
           onClick={() => setActiveTab('profile')}
-          className={`pb-4 text-sm font-bold transition-all relative ${
+          className={`pb-3 text-sm font-bold transition-all relative shrink-0 snap-start ${
             activeTab === 'profile'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-slate-400 hover:text-slate-600'
+              ? 'text-indigo-605 border-b-2 border-indigo-600'
+              : 'text-slate-400 hover:text-slate-650'
           } cursor-pointer select-none`}
         >
           <span className="flex items-center gap-1.5">

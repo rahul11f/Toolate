@@ -229,7 +229,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
         {/* Left Side: Media and Core Details */}
         <div className="lg:col-span-2 space-y-8">
           {/* Images Slide */}
-          <ImageCarousel images={parsedImages} title={listing.title} />
+          <ImageCarousel images={parsedImages} title={listing.title} category={listing.category} />
 
           {/* Verification Restriction Warning Banner */}
           {isRestricted && (
@@ -1255,7 +1255,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
 
                   {/* WFH & Employee Stays Details */}
                   {facilities.wfhFriendly && (
-                    <div className="md:col-span-2 mt-4 p-4 rounded-xl border border-indigo-100 bg-indigo-50/20 space-y-3">
+                    <div className="col-span-2 mt-4 p-4 rounded-xl border border-indigo-100 bg-indigo-50/20 space-y-3">
                       <div className="flex items-center gap-2 text-indigo-950 font-extrabold text-xs uppercase tracking-wider">
                         <span>💻 Optimized for WFH / Remote Employees</span>
                       </div>

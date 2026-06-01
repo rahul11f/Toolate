@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, IndianRupee, MapPin, CheckCircle2, XCircle, Trash2, Phone, MessageCircle, Building, Loader2, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
+import SafeImage from '@/components/SafeImage';
 
 interface CompareListing {
   id: string;
@@ -186,19 +187,13 @@ export default function ComparePage() {
                 {listings.map((listing) => (
                   <th key={listing.id} className="px-4 py-4 text-center min-w-[200px]">
                     <div className="space-y-3">
-                      <div className="relative h-32 rounded-xl overflow-hidden bg-slate-100">
-                        {listing.images && listing.images.length > 0 ? (
-                          <img
-                            src={listing.images[0]}
-                            alt={listing.title}
-                            crossOrigin="anonymous"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300">
-                            <Building className="w-8 h-8" />
-                          </div>
-                        )}
+                      <div className="relative h-32 rounded-xl overflow-hidden bg-slate-105">
+                        <SafeImage
+                          src={listing.images && listing.images.length > 0 ? listing.images[0] : null}
+                          alt={listing.title}
+                          category={listing.category}
+                          className="w-full h-full object-cover"
+                        />
                         <button
                           onClick={() => handleRemove(listing.id)}
                           className="absolute top-2 right-2 p-1 bg-white/90 rounded-md hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition cursor-pointer"
