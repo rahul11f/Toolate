@@ -153,7 +153,7 @@ export default function SignupPage() {
         </div>
 
         {step === 'details' ? (
-          <form onSubmit={handleSubmit(handleRequestOtp)} className="space-y-6">
+          <form key="signup-details-form" onSubmit={handleSubmit(handleRequestOtp)} className="space-y-6">
             {/* Name */}
             <div className="space-y-1.5">
               <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Full Name</label>
@@ -215,7 +215,7 @@ export default function SignupPage() {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleFinalSignup} className="space-y-6">
+          <form key="signup-otp-form" onSubmit={handleFinalSignup} className="space-y-6">
             <div className="space-y-1.5">
               <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Verification OTP</label>
               <div className="relative">
