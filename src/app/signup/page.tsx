@@ -24,6 +24,7 @@ export default function SignupPage() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
+  const [fallbackOtp, setFallbackOtp] = useState<string | null>(null);
 
   const {
     register,
@@ -54,7 +55,13 @@ export default function SignupPage() {
       if (!res.ok) {
         toast.error(result.error || 'Failed to send OTP.');
       } else {
-        toast.success('Verification code sent to your email.');
+        if (result.otp) {
+          setFallbackOtp(result.otp);
+          toast.success('Sandbox / testing mode: code generated.');
+        } else {
+          setFallbackOtp(null);
+          toast.success('Verification code sent to your email.');
+        }
         setStep('otp');
       }
     } catch (err) {
@@ -229,9 +236,24 @@ export default function SignupPage() {
                   className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm pl-10 pr-4 py-3 rounded-xl outline-hidden tracking-[0.25em] text-center font-bold transition placeholder:tracking-normal placeholder:font-normal placeholder:text-slate-405"
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-1 font-medium">
-                Sent verification code to <span className="font-bold text-slate-600">{getValues('email')}</span>
-              </p>
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-xs text-slate-400 font-medium">
+                  Sent verification code to <span className="font-bold text-slate-600">{getValues('email')}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => handleRequestOtp(getValues())}
+                  disabled={otpSending}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-800 disabled:text-slate-400 cursor-pointer select-none transition"
+                >
+                  {otpSending ? 'Resending...' : 'Resend'}
+                </button>
+              </div>
+              {fallbackOtp && (
+                <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 p-3.5 rounded-xl text-xs font-semibold leading-relaxed">
+                  ⚠️ <strong>Sandbox / testing mode:</strong> Verification email could not be sent (free tier restrictions). For testing, please use this OTP code: <span className="font-mono text-sm bg-amber-100 px-2 py-0.5 rounded-md select-all text-amber-950 font-bold">{fallbackOtp}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
