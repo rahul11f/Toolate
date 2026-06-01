@@ -578,13 +578,17 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                   <div key={listing.id} className="relative">
                     {/* Compare Button Overlay */}
                     <CompareButton listingId={listing.id} />
-                    <Link
-                    key={listing.id}
-                    href={`/listings/${listing.id}`}
-                    className={`bg-white rounded-2xl overflow-hidden border ${
-                      isRoommate ? 'border-violet-100 shadow-violet-50/20 hover:border-violet-300' : 'border-slate-100 hover:border-slate-200'
-                    } shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all duration-200 flex flex-col h-full group`}
-                  >
+                    <div
+                      className={`relative bg-white rounded-2xl overflow-hidden border ${
+                        isRoommate ? 'border-violet-100 shadow-violet-50/20 hover:border-violet-300' : 'border-slate-100 hover:border-slate-200'
+                      } shadow-sm hover:shadow-xl hover:scale-[1.01] transition-all duration-200 flex flex-col h-full group`}
+                    >
+                      {/* Stretched Link covering the entire card click area */}
+                      <Link
+                        href={`/listings/${listing.id}`}
+                        className="absolute inset-0 z-10"
+                        aria-label={listing.title}
+                      />
                     {/* Header Image */}
                     <div className="relative h-44 bg-slate-100 overflow-hidden">
                       {listing.images && listing.images.length > 0 ? (
@@ -671,7 +675,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                             ) : (
                               <Link 
                                 href="/roommate-quiz" 
-                                className="text-[10px] text-violet-700 bg-violet-50 hover:bg-violet-100 px-2.5 py-1 rounded-lg border border-violet-100 font-bold transition select-none"
+                                className="relative z-20 text-[10px] text-violet-700 bg-violet-50 hover:bg-violet-100 px-2.5 py-1 rounded-lg border border-violet-100 font-bold transition select-none"
                               >
                                 Match %
                               </Link>
@@ -723,7 +727,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         )}
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 </div>
               );
             })}
