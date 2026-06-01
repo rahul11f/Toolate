@@ -400,14 +400,14 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     if (minPrice !== undefined && keyToRemove !== 'minPrice') params.set('minPrice', minPrice.toString());
     if (maxPrice !== undefined && keyToRemove !== 'maxPrice') params.set('maxPrice', maxPrice.toString());
     if (nearMetro && keyToRemove !== 'nearMetro') params.set('nearMetro', 'true');
-    if (commuteLat !== undefined && keyToRemove !== 'commute') {
+    if (commuteLat !== undefined && commuteLng !== undefined && keyToRemove !== 'commute') {
       params.set('commuteLat', commuteLat.toString());
       params.set('commuteLng', commuteLng.toString());
       params.set('commuteAddress', commuteAddress || '');
       params.set('commuteMaxTime', commuteMaxTime.toString());
       params.set('commuteMode', commuteMode);
     }
-    if (lat !== undefined && keyToRemove !== 'gps') {
+    if (lat !== undefined && lng !== undefined && keyToRemove !== 'gps') {
       params.set('lat', lat.toString());
       params.set('lng', lng.toString());
       params.set('radius', radius.toString());
