@@ -499,6 +499,8 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                     ? 'Coworking'
                     : cat === 'HOUSE_GUEST'
                     ? 'House Guest / Homestay'
+                    : cat === 'SHARE_STAY'
+                    ? '🤝 Share & Stay (Room/Hotel/Travel)'
                     : cat.charAt(0) + cat.slice(1).toLowerCase().replace('_', ' ')}
                 </option>
               ))}
@@ -515,6 +517,8 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                 ? 'Rent per Bed/Day (INR)'
                 : watchCategory === 'HOUSE_GUEST'
                 ? 'Stay Cost per Day (INR)'
+                : watchCategory === 'SHARE_STAY'
+                ? 'Budget Per Person (INR)'
                 : 'Monthly Rent (INR)'}
             </label>
             <div className="relative">
@@ -636,6 +640,107 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Share & Stay Quick-Fill Options (Conditional) */}
+        {watchCategory === ListingCategory.SHARE_STAY && (
+          <div className="space-y-4 p-5 bg-fuchsia-50/50 border border-fuchsia-100/80 rounded-2xl">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🤝</span>
+              <h4 className="font-extrabold text-slate-800 text-sm">Share & Stay Details</h4>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium -mt-2">
+              List what you want to share — a room, hotel, PG bed, or find a travel companion. Interested people can quickly join your listing.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Share Type */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">What are you sharing?</label>
+                <select
+                  value={facilities.shareType || 'ROOM'}
+                  onChange={(e) => handleFacilityChange('shareType', e.target.value)}
+                  className="w-full bg-white border border-slate-200 focus:border-fuchsia-500 text-xs px-3 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-semibold"
+                >
+                  <option value="ROOM">🏠 Room / Flat</option>
+                  <option value="HOTEL">🏨 Hotel Room</option>
+                  <option value="PG_BED">🛏️ PG Bed</option>
+                  <option value="TRAVEL">✈️ Travel Partner</option>
+                  <option value="COWORK">💻 Co-working Space</option>
+                  <option value="OTHER">📦 Other</option>
+                </select>
+              </div>
+
+              {/* Duration */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Stay Duration</label>
+                <select
+                  value={facilities.shareDuration || 'FLEXIBLE'}
+                  onChange={(e) => handleFacilityChange('shareDuration', e.target.value)}
+                  className="w-full bg-white border border-slate-200 focus:border-fuchsia-500 text-xs px-3 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-semibold"
+                >
+                  <option value="DAILY">📅 Daily</option>
+                  <option value="WEEKLY">🗓️ Weekly</option>
+                  <option value="MONTHLY">📆 Monthly</option>
+                  <option value="FLEXIBLE">🔄 Flexible / Negotiable</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Available From</label>
+                <input
+                  type="date"
+                  {...register('checkInDate')}
+                  className="w-full bg-white border border-slate-200 focus:border-fuchsia-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Available Until (Listing Expiry)</label>
+                <input
+                  type="date"
+                  {...register('checkOutDate')}
+                  className="w-full bg-white border border-slate-200 focus:border-fuchsia-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                />
+                <p className="text-[9px] text-slate-400">Listing auto-expires on this date.</p>
+              </div>
+            </div>
+
+            {/* Gender Preference */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Preferred Gender</label>
+                <select
+                  {...register('roommateGender')}
+                  className="w-full bg-white border border-slate-200 focus:border-fuchsia-500 text-xs px-3 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-semibold"
+                >
+                  <option value="ANY">Any Gender Welcome</option>
+                  <option value="MALE">Male Only</option>
+                  <option value="FEMALE">Female Only</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5 flex flex-col justify-end">
+                <label className="flex items-center space-x-2.5 text-slate-700 text-xs font-semibold cursor-pointer select-none bg-white border border-slate-200 px-3 py-2.5 rounded-xl hover:border-fuchsia-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={facilities.openToAnyone || false}
+                    onChange={(e) => handleFacilityChange('openToAnyone', e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500 cursor-pointer"
+                  />
+                  <span>🌍 Open to anyone — no restrictions</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Quick info banner */}
+            <div className="bg-fuchsia-50 border border-fuchsia-100 p-3 rounded-xl text-xs text-fuchsia-800 font-semibold flex items-start gap-2">
+              <span className="text-base leading-none">💡</span>
+              <span>Once listed, anyone can click "I'm Interested — Join This Share" on your listing to express interest. You'll get a notification and can coordinate directly.</span>
             </div>
           </div>
         )}

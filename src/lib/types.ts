@@ -19,6 +19,7 @@ export enum ListingCategory {
   DHARAMSHALA = 'DHARAMSHALA',
   HOURLY_ROOM = 'HOURLY_ROOM',
   HOUSE_GUEST = 'HOUSE_GUEST',
+  SHARE_STAY = 'SHARE_STAY',
 }
 
 export enum ListingStatus {

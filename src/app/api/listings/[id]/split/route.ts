@@ -17,19 +17,13 @@ export async function POST(
     const { id } = await params;
     const userId = (session.user as any).id;
 
-    // 1. Fetch user to verify they have a verified ID badge
+    // 1. Fetch user to verify their ID if required
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { documentVerified: true },
     });
 
-    if (!user || !user.documentVerified) {
-      return NextResponse.json({
-        error: 'Security Alert: Only users with a Verified Government ID badge can request to split hotel rooms.'
-      }, { status: 403 });
-    }
-
-    // 2. Fetch the hotel room sharing listing
+    // 2. Fetch the listing
     const listing = await prisma.listing.findUnique({
       where: { id },
     });
@@ -38,16 +32,27 @@ export async function POST(
       return NextResponse.json({ error: 'Listing not found.' }, { status: 404 });
     }
 
-    if (listing.category !== 'HOTEL' || !listing.isSharedHotelRoom) {
-      return NextResponse.json({ error: 'This listing does not support hotel room splitting.' }, { status: 400 });
+    const isHotelSplit = listing.category === 'HOTEL' && listing.isSharedHotelRoom;
+    const isShareStay = listing.category === 'SHARE_STAY';
+
+    if (!isHotelSplit && !isShareStay) {
+      return NextResponse.json({ error: 'This listing does not support sharing/splitting.' }, { status: 400 });
     }
 
     if (listing.userId === userId) {
-      return NextResponse.json({ error: 'You cannot request to split your own hotel listing.' }, { status: 400 });
+      return NextResponse.json({ error: 'You cannot request to split/join your own listing.' }, { status: 400 });
     }
 
     if (listing.hotelSplitStatus !== 'AVAILABLE') {
-      return NextResponse.json({ error: 'This hotel split stay is no longer available.' }, { status: 400 });
+      return NextResponse.json({ error: 'This share/split stay is no longer available.' }, { status: 400 });
+    }
+
+    // Require verification if explicitly specified in the listing OR if it's a HOTEL split
+    const needsVerification = listing.requireVerification || isHotelSplit;
+    if (needsVerification && (!user || !user.documentVerified)) {
+      return NextResponse.json({
+        error: 'Security Alert: Only users with a Verified Government ID badge can request to split/join this listing.'
+      }, { status: 403 });
     }
 
     // 3. Update status to REQUESTED
@@ -63,14 +68,18 @@ export async function POST(
     await prisma.notification.create({
       data: {
         userId: listing.userId,
-        title: '🤝 Co-stay Split Requested',
-        message: `${session.user.name || 'A traveler'} requested to join and split the stay cost on your listing "${listing.title}".`,
+        title: isShareStay ? '🤝 Co-stay Interest Expressed' : '🤝 Co-stay Split Requested',
+        message: isShareStay
+          ? `${session.user.name || 'A traveler'} expressed interest to join your shared stay listing "${listing.title}".`
+          : `${session.user.name || 'A traveler'} requested to join and split the stay cost on your listing "${listing.title}".`,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Co-stay split request submitted successfully! Awaiting owner confirmation.',
+      message: isShareStay
+        ? 'Interest expressed successfully! Awaiting host confirmation.'
+        : 'Co-stay split request submitted successfully! Awaiting owner confirmation.',
     });
   } catch (error: any) {
     console.error('Hotel split POST error:', error);
@@ -118,6 +127,8 @@ export async function PUT(
       return NextResponse.json({ error: 'No active split requests found for this listing.' }, { status: 400 });
     }
 
+    const isShareStay = listing.category === 'SHARE_STAY';
+
     // 2. Perform action
     if (action === 'ACCEPT') {
       await prisma.listing.update({
@@ -131,8 +142,10 @@ export async function PUT(
       await prisma.notification.create({
         data: {
           userId: listing.hotelSplitUserId,
-          title: '🎉 Cost Split Approved!',
-          message: `Your co-stay request for "${listing.title}" was approved by the host. Coordinate directly to finalize travel!`,
+          title: isShareStay ? '🎉 Shared Stay Request Approved!' : '🎉 Cost Split Approved!',
+          message: isShareStay
+            ? `Your interest to join "${listing.title}" was approved by the host. Coordinate directly to organize your stay!`
+            : `Your co-stay request for "${listing.title}" was approved by the host. Coordinate directly to finalize travel!`,
         },
       });
     } else {
@@ -149,15 +162,17 @@ export async function PUT(
       await prisma.notification.create({
         data: {
           userId: requesterId,
-          title: '❌ Cost Split Declined',
-          message: `Your co-stay request for "${listing.title}" was declined by the host.`,
+          title: isShareStay ? '❌ Shared Stay Request Declined' : '❌ Cost Split Declined',
+          message: isShareStay
+            ? `Your request to join "${listing.title}" was declined by the host.`
+            : `Your co-stay request for "${listing.title}" was declined by the host.`,
         },
       });
     }
 
     return NextResponse.json({
       success: true,
-      message: `Split request ${action.toLowerCase()}ed successfully.`,
+      message: `Request ${action.toLowerCase()}ed successfully.`,
     });
   } catch (error: any) {
     console.error('Hotel split PUT error:', error);

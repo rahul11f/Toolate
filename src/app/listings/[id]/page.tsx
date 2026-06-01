@@ -510,6 +510,236 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
             </div>
           )}
 
+          {/* Share & Stay Details Banner */}
+          {listing.category === ListingCategory.SHARE_STAY && (
+            <div className="bg-gradient-to-br from-fuchsia-50 via-purple-50 to-pink-50/30 border border-fuchsia-100 p-6 rounded-2xl space-y-6 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-fuchsia-150 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-fuchsia-600 text-white p-3.5 rounded-2xl shadow-md">
+                    <Users className="w-6 h-6 stroke-[2]" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-fuchsia-955 text-base flex items-center gap-1.5">
+                      <span>Shared Stay & Companion Match</span>
+                      <Sparkles className="w-4.5 h-4.5 text-fuchsia-500 fill-fuchsia-50 animate-pulse" />
+                    </h4>
+                    <p className="text-xs text-fuchsia-700 font-semibold mt-1 uppercase tracking-wide">
+                      🤝 Peer-to-Peer Shared Accommodation / Travel Partner
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="bg-fuchsia-50 text-fuchsia-700 text-xs font-black px-3 py-1 rounded-xl border border-fuchsia-150 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Cost Sharing Match</span>
+                  </span>
+                  {listing.requireVerification ? (
+                    <span className="bg-amber-50 text-amber-755 text-xs font-bold px-3 py-1 rounded-xl border border-amber-200">
+                      ID Locked
+                    </span>
+                  ) : (
+                    <span className="bg-slate-50 text-slate-600 text-xs font-bold px-3 py-1 rounded-xl border border-slate-200">
+                      Open Coordination
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Share details grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-semibold text-slate-700">
+                <div className="space-y-2">
+                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span className="text-slate-400 font-medium">Type of Share</span>
+                    <span className="text-fuchsia-955 font-bold uppercase">
+                      {facilities.shareType === 'ROOM' ? '🏠 Room / Flat Share' :
+                       facilities.shareType === 'HOTEL' ? '🏨 Hotel Room Share' :
+                       facilities.shareType === 'PG_BED' ? '🛏️ PG Bed Share' :
+                       facilities.shareType === 'TRAVEL' ? '✈️ Travel Partner' :
+                       facilities.shareType === 'COWORK' ? '💻 Co-working Share' :
+                       '📦 General Share'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span className="text-slate-400 font-medium">Gender Preference</span>
+                    <span className="text-fuchsia-955 font-bold">
+                      {listing.roommateGender === 'MALE' ? 'Male Only' :
+                       listing.roommateGender === 'FEMALE' ? 'Female Only' :
+                       'Any Gender Welcome'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span className="text-slate-400 font-medium">Rent/Cost Share</span>
+                    <span className="text-emerald-700 font-extrabold flex items-center">
+                      <IndianRupee className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
+                      {listing.price.toLocaleString('en-IN')}
+                      <span className="text-[10px] text-slate-400 font-normal ml-0.5">/ person</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span className="text-slate-400 font-medium">Availability Basis</span>
+                    <span className="text-fuchsia-955 font-bold uppercase">
+                      {facilities.shareDuration === 'DAILY' ? '📅 Daily' :
+                       facilities.shareDuration === 'WEEKLY' ? '🗓️ Weekly' :
+                       facilities.shareDuration === 'MONTHLY' ? '📆 Monthly' :
+                       '🔄 Flexible / Negotiable'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span className="text-slate-400 font-medium">Available From</span>
+                    <span className="text-fuchsia-955 font-bold">
+                      {listing.checkInDate ? new Date(listing.checkInDate).toLocaleDateString() : 'Immediate'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span className="text-slate-400 font-medium">Available Until</span>
+                    <span className="text-fuchsia-955 font-bold">
+                      {listing.checkOutDate ? new Date(listing.checkOutDate).toLocaleDateString() : 'Flexible'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verification & Split CTA Controls */}
+              <div className="pt-4 border-t border-fuchsia-100/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-xs text-slate-500 font-medium max-w-md">
+                  💡 **How it works**: Tap "Express Interest to Join" below to notify the owner. Once approved, you can chat or call directly to coordinate options.
+                </div>
+
+                <div className="shrink-0 w-full sm:w-auto">
+                  {isOwner ? (
+                    /* Owner controls: show split request */
+                    listing.hotelSplitStatus === 'REQUESTED' ? (
+                      <div className="space-y-3 bg-white p-4 rounded-xl border border-fuchsia-100 shadow-xs">
+                        <p className="text-xs font-bold text-slate-700">
+                          Co-stay Join Interest from <strong className="text-fuchsia-650">{requesterName}</strong>
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            data-split-action="ACCEPT"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition"
+                          >
+                            Approve & Accept
+                          </button>
+                          <button
+                            type="button"
+                            data-split-action="REJECT"
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-655 font-bold text-xs px-4 py-2 rounded-lg transition"
+                          >
+                            Decline Request
+                          </button>
+                        </div>
+                      </div>
+                    ) : listing.hotelSplitStatus === 'COMPLETED' ? (
+                      <div className="bg-emerald-50 border border-emerald-100 text-emerald-950 font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-2xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-650" />
+                        <span>Cost split / Join approved! Shared stay active.</span>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-50 border border-slate-205 text-slate-500 font-semibold text-xs px-4 py-2.5 rounded-xl">
+                        Awaiting requests to join...
+                      </div>
+                    )
+                  ) : (
+                    /* Traveler controls */
+                    listing.hotelSplitStatus === 'AVAILABLE' ? (
+                      (!listing.requireVerification || userVerified) ? (
+                        <button
+                          type="button"
+                          id="btn-request-split"
+                          className="w-full sm:w-auto bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-xs px-6 py-3 rounded-xl transition active:scale-95 shadow-md cursor-pointer"
+                        >
+                          I'm Interested — Join This Share 🤝
+                        </button>
+                      ) : (
+                        <div className="text-amber-805 bg-amber-50 border border-amber-100 text-[11px] font-bold p-3 rounded-xl flex items-center gap-1.5">
+                          <Lock className="w-4 h-4 shrink-0" />
+                          <span>Verify your Government ID to join!</span>
+                        </div>
+                      )
+                    ) : listing.hotelSplitStatus === 'REQUESTED' ? (
+                      <div className="bg-amber-50 border border-amber-100 text-amber-955 font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-amber-650" />
+                        <span>Interest submitted! Awaiting host response...</span>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-100 border border-slate-200 text-slate-500 font-bold text-xs px-4 py-2.5 rounded-xl">
+                        Join approved! (Stay Shared)
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Client Component Actions Hydration script */}
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: `
+                    (function() {
+                      // Request Join Action
+                      var btn = document.getElementById("btn-request-split");
+                      if (btn) {
+                        btn.addEventListener("click", function() {
+                          btn.disabled = true;
+                          btn.innerText = "Submitting interest...";
+                          fetch("/api/listings/${listing.id}/split", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" }
+                          }).then(function(res) {
+                            return res.json();
+                          }).then(function(data) {
+                            if (data.success) {
+                              alert("Interest submitted successfully! Reloading page...");
+                              window.location.reload();
+                            } else {
+                              alert(data.error || "Failed to submit interest.");
+                              btn.disabled = false;
+                              btn.innerText = "I'm Interested — Join This Share 🤝";
+                            }
+                          }).catch(function() {
+                            alert("Failed to submit interest.");
+                            btn.disabled = false;
+                            btn.innerText = "I'm Interested — Join This Share 🤝";
+                          });
+                        });
+                      }
+
+                      // Lister Accept / Reject Actions
+                      document.querySelectorAll("[data-split-action]").forEach(function(el) {
+                        el.addEventListener("click", function() {
+                          var action = el.getAttribute("data-split-action");
+                          el.disabled = true;
+                          fetch("/api/listings/${listing.id}/split", {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: action })
+                          }).then(function(res) {
+                            return res.json();
+                          }).then(function(data) {
+                            if (data.success) {
+                              alert("Request " + action.toLowerCase() + "ed! Reloading...");
+                              window.location.reload();
+                            } else {
+                              alert(data.error || "Failed to submit action.");
+                              el.disabled = false;
+                            }
+                          }).catch(function() {
+                            alert("Failed to submit action.");
+                            el.disabled = false;
+                          });
+                        });
+                      });
+                    })();
+                  `
+                }}
+              />
+            </div>
+          )}
+
           {/* Roommate highlight banner */}
           {isRoommate && (
             <div className="bg-gradient-to-br from-violet-50 via-indigo-50 to-purple-50 border border-violet-100 p-6 rounded-2xl shadow-sm space-y-4">
@@ -649,7 +879,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                 <IndianRupee className="w-5 h-5 stroke-[2.5]" />
                 <span>{listing.price.toLocaleString('en-IN')}</span>
                 <span className="text-sm text-slate-400 font-normal ml-1">
-                  {isRoommate
+                  {isRoommate || listing.category === ListingCategory.SHARE_STAY
                     ? '/ share'
                     : listing.category === ListingCategory.HOURLY_ROOM
                     ? '/ hour'
@@ -1194,15 +1424,15 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6 sticky top-20">
             <div className="space-y-2">
               <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                {isRoommate ? 'Expected Cost Share' : 'Estimated Cost'}
+                {isRoommate || listing.category === ListingCategory.SHARE_STAY ? 'Expected Cost Share' : 'Estimated Cost'}
               </span>
               <div className="flex items-baseline text-slate-800">
                 <span className="text-3xl font-extrabold flex items-center">
                   <IndianRupee className="w-6 h-6 stroke-[2.5] text-indigo-600 shrink-0" />
                   {listing.price.toLocaleString('en-IN')}
                 </span>
-                <span className="text-slate-450 ml-1 text-sm font-medium">
-                  {isRoommate ? '/ share' : '/ month'}
+                <span className="text-slate-455 ml-1 text-sm font-medium">
+                  {isRoommate || listing.category === ListingCategory.SHARE_STAY ? '/ share' : '/ month'}
                 </span>
               </div>
             </div>

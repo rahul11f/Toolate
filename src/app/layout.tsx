@@ -82,19 +82,20 @@ export default async function RootLayout({
             </aside>
           </div>
           {/* Sticky footer with bottom banner AdSense placeholder */}
-          <footer className="bg-white border-t border-slate-100 py-8 mt-12 w-full">
+          <footer className="bg-white border-t border-slate-100 py-8 mt-12 w-full pb-28 md:pb-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
               {/* AdSense Footer Banner */}
               <AdSensePlaceholder slot="footer-banner" format="auto" className="max-w-4xl mx-auto" />
               
-              <div className="flex flex-col md:flex-row justify-between items-center text-xs text-slate-400 border-t border-slate-100 pt-6">
-                <p>&copy; {new Date().getFullYear()} {footerText}</p>
-                <div className="flex space-x-4 mt-4 md:mt-0">
-                  <Link href="/about" className="hover:text-indigo-650 transition font-semibold">About Us</Link>
-                  <Link href="/contact" className="hover:text-indigo-650 transition">Contact Us & Suggestions</Link>
-                  <Link href="/privacy" className="hover:text-indigo-650 transition">Privacy Policy</Link>
-                  <Link href="/terms" className="hover:text-indigo-650 transition">Terms of Service</Link>
-                  <Link href="/admin" className="hover:text-indigo-650 transition">Admin Portal</Link>
+              <div className="border-t border-slate-100 pt-6 space-y-4">
+                <p className="text-xs text-slate-400 text-center md:text-left">&copy; {new Date().getFullYear()} {footerText}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-3 md:gap-5">
+                  <Link href="/about" className="text-xs text-slate-400 hover:text-indigo-600 transition font-semibold">About Us</Link>
+                  <Link href="/contact" className="text-xs text-slate-400 hover:text-indigo-600 transition font-semibold">Contact & Feedback</Link>
+                  <Link href="/privacy" className="text-xs text-slate-400 hover:text-indigo-600 transition font-semibold">Privacy Policy</Link>
+                  <Link href="/terms" className="text-xs text-slate-400 hover:text-indigo-600 transition font-semibold">Terms of Service</Link>
+                  <Link href="/tools/rental-agreement" className="text-xs text-slate-400 hover:text-indigo-600 transition font-semibold">Rental Agreement</Link>
+                  <Link href="/admin" className="text-xs text-slate-400 hover:text-indigo-600 transition font-semibold">Admin Portal</Link>
                 </div>
               </div>
             </div>

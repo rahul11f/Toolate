@@ -145,7 +145,7 @@ export default function ListingFilters() {
     if (city) params.set('city', city);
     if (sortBy) params.set('sortBy', sortBy);
 
-    if (category === 'ROOMMATE') {
+    if (category === 'ROOMMATE' || category === 'SHARE_STAY') {
       if (roommateType) params.set('roommateType', roommateType);
       if (roommateGender) params.set('roommateGender', roommateGender);
     }
@@ -401,6 +401,62 @@ export default function ListingFilters() {
               <option value="ANY">Any / Any Gender</option>
               <option value="MALE">Male Preferred</option>
               <option value="FEMALE">Female Preferred</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Share & Stay Filters (Conditional) */}
+      {category === 'SHARE_STAY' && (
+        <div className="p-4 bg-fuchsia-50/40 border border-fuchsia-100 rounded-xl space-y-4">
+          <div className="flex items-center gap-1.5 text-fuchsia-700 text-xs font-bold uppercase tracking-wider">
+            <span>🤝</span>
+            <span>Share Type</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: '', label: 'All', emoji: '' },
+              { value: 'ROOM', label: 'Room/Flat', emoji: '🏠' },
+              { value: 'HOTEL', label: 'Hotel', emoji: '🏨' },
+              { value: 'PG_BED', label: 'PG Bed', emoji: '🛏️' },
+              { value: 'TRAVEL', label: 'Travel', emoji: '✈️' },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (opt.value) {
+                    params.set('shareType', opt.value);
+                  } else {
+                    params.delete('shareType');
+                  }
+                  params.set('page', '1');
+                  router.push(`/listings?${params.toString()}`);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer select-none border ${
+                  searchParams.get('shareType') === opt.value || (!searchParams.get('shareType') && opt.value === '')
+                    ? 'bg-fuchsia-600 text-white border-fuchsia-600 shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-fuchsia-300'
+                }`}
+              >
+                {opt.emoji} {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Gender Preference for Share */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Gender Preference</label>
+            <select
+              value={roommateGender}
+              onChange={(e) => setRoommateGender(e.target.value)}
+              className="w-full bg-white border border-slate-200 text-xs px-3 py-2 rounded-lg outline-hidden transition font-medium"
+            >
+              <option value="">Any Preference</option>
+              <option value="ANY">Open to All</option>
+              <option value="MALE">Male Only</option>
+              <option value="FEMALE">Female Only</option>
             </select>
           </div>
         </div>

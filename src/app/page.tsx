@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { ListingStatus, ListingCategory } from '@/lib/types';
-import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock, Calendar, ShieldCheck, UserCheck, Plus, CheckCircle2 } from 'lucide-react';
+import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock, Calendar, ShieldCheck, UserCheck, Plus, CheckCircle2, Handshake } from 'lucide-react';
 import HomeSearchForm from '@/components/HomeSearchForm';
 
 export const revalidate = 60; // Revalidate home page cache every minute
@@ -97,6 +97,7 @@ export default async function HomePage() {
     { name: 'Dharamshala', key: ListingCategory.DHARAMSHALA, count: 'Pilgrim lodgings', icon: Landmark, bg: 'bg-amber-50 text-amber-600' },
     { name: 'Hourly Room', key: ListingCategory.HOURLY_ROOM, count: 'Flexible micro-stays', icon: Clock, bg: 'bg-rose-50 text-rose-600' },
     { name: 'Homestay', key: ListingCategory.HOUSE_GUEST, count: 'Guest stays & hosting', icon: Calendar, bg: 'bg-lime-50 text-lime-600' },
+    { name: 'Share & Stay', key: ListingCategory.SHARE_STAY, count: 'Room/hotel/travel sharing', icon: Handshake, bg: 'bg-fuchsia-50 text-fuchsia-600' },
   ];
 
   const currentMonth = new Date().getMonth();
