@@ -3,10 +3,11 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
 import { calculateCompatibility } from '@/lib/roommateMatcher';
+import UserAvatar from '@/components/UserAvatar';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ListingStatus, Role, ListingCategory } from '@/lib/types';
-import { Building, MapPin, IndianRupee, Clock, ClipboardList, Calendar, ArrowLeft, Lock, LogIn, Globe, Users, Sparkles, Star, ShieldCheck, CheckCircle2, XCircle } from 'lucide-react';
+import { Building, MapPin, IndianRupee, Clock, ClipboardList, Calendar, ArrowLeft, Lock, LogIn, Globe, Users, Sparkles, Star, ShieldCheck, CheckCircle2, XCircle, Compass } from 'lucide-react';
 import ImageCarousel from '@/components/ImageCarousel';
 import ContactDetails from './ContactDetails';
 import AdSensePlaceholder from '@/components/AdSensePlaceholder';
@@ -62,6 +63,8 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
           email: true,
           lifestyleProfile: true,
           documentVerified: true,
+          image: true,
+          legalName: true,
         } as any,
       },
       reviews: {
@@ -291,88 +294,164 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                   </div>
                   <div>
                     <h4 className="font-extrabold text-indigo-950 text-base flex items-center gap-1.5">
-                      <span>Hotel Room Share & Cost Split</span>
-                      <ShieldCheck className="w-4.5 h-4.5 text-emerald-500 fill-emerald-50" />
+                      {facilities.isAlreadyBooked === false ? (
+                        <>
+                          <span>Co-stay Query & Partner Match</span>
+                          <Sparkles className="w-4.5 h-4.5 text-violet-500 fill-violet-50" />
+                        </>
+                      ) : (
+                        <>
+                          <span>Hotel Room Share & Cost Split</span>
+                          <ShieldCheck className="w-4.5 h-4.5 text-emerald-500 fill-emerald-50" />
+                        </>
+                      )}
                     </h4>
                     <p className="text-xs text-indigo-700 font-semibold mt-1 uppercase tracking-wide">
-                      🤝 Split stay program (50/50 cost split)
+                      {facilities.isAlreadyBooked === false 
+                        ? '🤝 Connect first, select hotel and split costs together later' 
+                        : '🤝 Split stay program (50/50 cost split)'}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="bg-emerald-50 text-emerald-700 text-xs font-black px-3 py-1 rounded-xl border border-emerald-150 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Hotel Vetted</span>
-                  </span>
-                  <span className="bg-indigo-50 text-indigo-755 text-xs font-bold px-3 py-1 rounded-xl border border-indigo-100">
-                    ID Locked
-                  </span>
+                  {facilities.isAlreadyBooked !== false ? (
+                    <>
+                      <span className="bg-emerald-50 text-emerald-700 text-xs font-black px-3 py-1 rounded-xl border border-emerald-150 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Hotel Vetted</span>
+                      </span>
+                      <span className="bg-indigo-50 text-indigo-755 text-xs font-bold px-3 py-1 rounded-xl border border-indigo-100">
+                        ID Locked
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="bg-violet-50 text-violet-700 text-xs font-black px-3 py-1 rounded-xl border border-violet-150 flex items-center gap-1">
+                        <Compass className="w-3.5 h-3.5 text-violet-650" />
+                        <span>Planning Co-Stay</span>
+                      </span>
+                      {listing.requireVerification ? (
+                        <span className="bg-indigo-50 text-indigo-755 text-xs font-bold px-3 py-1 rounded-xl border border-indigo-100">
+                          ID Locked
+                        </span>
+                      ) : (
+                        <span className="bg-slate-50 text-slate-600 text-xs font-bold px-3 py-1 rounded-xl border border-slate-200">
+                          Open Query
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Booking metadata */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-semibold text-slate-700">
-                <div className="space-y-2">
-                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                    <span className="text-slate-400 font-medium">Hotel Name</span>
-                    <span className="text-indigo-950 font-bold">{listing.hotelName}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                    <span className="text-slate-400 font-medium">Booking Ref ID</span>
-                    {userVerified || isOwner || isAdmin ? (
-                      <span className="text-indigo-950 font-bold font-mono">{listing.hotelBookingRef}</span>
-                    ) : (
-                      <span className="text-amber-600 font-bold flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5" /> Locked
+              {facilities.isAlreadyBooked === false ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-semibold text-slate-700 bg-white/60 p-4 rounded-xl border border-indigo-100/50">
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Hotel Booking Status</span>
+                      <span className="text-violet-755 font-bold">🔍 Pre-Booking Query</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Hotel Selection</span>
+                      <span className="text-slate-500 font-semibold italic">Chosen after connecting</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Estimated Split Share</span>
+                      <span className="text-emerald-700 font-extrabold flex items-center">
+                        <IndianRupee className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
+                        {(listing.price / 2).toLocaleString('en-IN')}
                       </span>
-                    )}
+                    </div>
                   </div>
-                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                    <span className="text-slate-400 font-medium">Split Cost / Party</span>
-                    <span className="text-emerald-700 font-extrabold flex items-center">
-                      <IndianRupee className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
-                      {(listing.price / 2).toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                    <span className="text-slate-400 font-medium">Check-In Date</span>
-                    <span className="text-indigo-950 font-bold">
-                      {listing.checkInDate ? new Date(listing.checkInDate).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                    <span className="text-slate-400 font-medium">Check-Out Date</span>
-                    <span className="text-indigo-950 font-bold">
-                      {listing.checkOutDate ? new Date(listing.checkOutDate).toLocaleDateString() : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100 pb-1.5">
-                    <span className="text-slate-400 font-medium">Booking Proof</span>
-                    {userVerified || isOwner || isAdmin ? (
-                      listing.hotelBookingProofUrl ? (
-                        <a
-                          href={listing.hotelBookingProofUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo-650 hover:text-indigo-755 hover:underline font-bold"
-                        >
-                          View Receipt Link
-                        </a>
-                      ) : (
-                        <span className="text-slate-400 font-medium">None</span>
-                      )
-                    ) : (
-                      <span className="text-amber-600 font-bold flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5" /> Verify ID to View
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Travel Start Date</span>
+                      <span className="text-indigo-950 font-bold">
+                        {listing.checkInDate ? new Date(listing.checkInDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                       </span>
-                    )}
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Travel End Date</span>
+                      <span className="text-indigo-950 font-bold">
+                        {listing.checkOutDate ? new Date(listing.checkOutDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Preferred Partner Gender</span>
+                      <span className="text-indigo-950 font-bold uppercase">
+                        {listing.roommateGender === 'MALE' ? 'Male Only' :
+                         listing.roommateGender === 'FEMALE' ? 'Female Only' :
+                         'Any Gender Welcome'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-semibold text-slate-700 bg-white/60 p-4 rounded-xl border border-indigo-100/50">
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Hotel Name</span>
+                      <span className="text-indigo-950 font-bold">{listing.hotelName}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Booking Ref ID</span>
+                      {userVerified || isOwner || isAdmin ? (
+                        <span className="text-indigo-950 font-bold font-mono">{listing.hotelBookingRef}</span>
+                      ) : (
+                        <span className="text-amber-600 font-bold flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5" /> Locked
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Split Cost / Party</span>
+                      <span className="text-emerald-700 font-extrabold flex items-center">
+                        <IndianRupee className="w-3.5 h-3.5 shrink-0 stroke-[2.5]" />
+                        {(listing.price / 2).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Check-In Date</span>
+                      <span className="text-indigo-950 font-bold">
+                        {listing.checkInDate ? new Date(listing.checkInDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Check-Out Date</span>
+                      <span className="text-indigo-950 font-bold">
+                        {listing.checkOutDate ? new Date(listing.checkOutDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                      <span className="text-slate-400 font-medium">Booking Proof</span>
+                      {userVerified || isOwner || isAdmin ? (
+                        listing.hotelBookingProofUrl ? (
+                          <a
+                            href={listing.hotelBookingProofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-655 hover:text-indigo-755 hover:underline font-bold"
+                          >
+                            View Receipt Link
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 font-medium">None</span>
+                        )
+                      ) : (
+                        <span className="text-amber-605 font-bold flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5" /> Verify ID to View
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Verification & Split CTA Controls */}
               <div className="pt-4 border-t border-indigo-100/50 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -385,7 +464,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                     /* Owner controls: show split request */
                     listing.hotelSplitStatus === 'REQUESTED' ? (
                       <div className="space-y-3 bg-white p-4 rounded-xl border border-indigo-100 shadow-xs">
-                        <p className="text-xs font-bold text-slate-700">
+                        <p className="text-xs font-bold text-slate-705">
                           Incoming Cost-Split Request from <strong className="text-indigo-650">{requesterName}</strong>
                         </p>
                         <div className="flex gap-2">
@@ -418,13 +497,13 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                   ) : (
                     /* Traveler controls */
                     listing.hotelSplitStatus === 'AVAILABLE' ? (
-                      userVerified ? (
+                      (!listing.requireVerification || userVerified) ? (
                         <button
                           type="button"
                           id="btn-request-split"
                           className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-6 py-3 rounded-xl transition active:scale-95 shadow-md cursor-pointer"
                         >
-                          Request Co-stay & Split Cost (50/50)
+                          {facilities.isAlreadyBooked === false ? 'Express Interest to Co-stay 🤝' : 'Request Co-stay & Split Cost (50/50)'}
                         </button>
                       ) : (
                         <div className="text-amber-800 bg-amber-50 border border-amber-100 text-[11px] font-bold p-3 rounded-xl flex items-center gap-1.5">
@@ -434,7 +513,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                       )
                     ) : listing.hotelSplitStatus === 'REQUESTED' ? (
                       <div className="bg-amber-50 border border-amber-100 text-amber-955 font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 text-amber-650" />
+                        <Clock className="w-4 h-4 text-amber-655" />
                         <span>Co-stay request pending host approval...</span>
                       </div>
                     ) : (
@@ -608,7 +687,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
               {/* Verification & Split CTA Controls */}
               <div className="pt-4 border-t border-fuchsia-100/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-xs text-slate-500 font-medium max-w-md">
-                  💡 **How it works**: Tap "Express Interest to Join" below to notify the owner. Once approved, you can chat or call directly to coordinate options.
+                  💡 **How it works**: Tap &quot;Express Interest to Join&quot; below to notify the owner. Once approved, you can chat or call directly to coordinate options.
                 </div>
 
                 <div className="shrink-0 w-full sm:w-auto">
@@ -655,7 +734,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                           id="btn-request-split"
                           className="w-full sm:w-auto bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-xs px-6 py-3 rounded-xl transition active:scale-95 shadow-md cursor-pointer"
                         >
-                          I'm Interested — Join This Share 🤝
+                          I&apos;m Interested — Join This Share 🤝
                         </button>
                       ) : (
                         <div className="text-amber-805 bg-amber-50 border border-amber-100 text-[11px] font-bold p-3 rounded-xl flex items-center gap-1.5">
@@ -1214,7 +1293,7 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                       {facilities.wfhTerms && (
                         <div className="pt-2 border-t border-indigo-100/30 text-xs text-left">
                           <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Employee Terms & Conditions</span>
-                          <p className="text-slate-600 font-medium italic">"{facilities.wfhTerms}"</p>
+                          <p className="text-slate-600 font-medium italic">&quot;{facilities.wfhTerms}&quot;</p>
                         </div>
                       )}
                     </div>
@@ -1438,6 +1517,29 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                 <span className="text-slate-455 ml-1 text-sm font-medium">
                   {isRoommate || listing.category === ListingCategory.SHARE_STAY ? '/ share' : '/ month'}
                 </span>
+              </div>
+            </div>
+
+            {/* Host Details Block */}
+            <div className="flex items-center gap-3 bg-slate-50/50 border border-slate-100 p-3.5 rounded-xl text-xs">
+              <UserAvatar
+                image={listing.user?.image}
+                name={listing.user?.legalName || listing.user?.name || 'Anonymous Host'}
+                sizeClassName="w-10 h-10"
+                fallbackClassName="bg-indigo-100 text-indigo-600 font-bold text-xs"
+              />
+              <div className="min-w-0 text-left">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Listed By</span>
+                <span className="font-extrabold text-slate-700 block truncate">
+                  {listing.user?.legalName || listing.user?.name || 'Anonymous Host'}
+                </span>
+                {listing.user?.documentVerified ? (
+                  <span className="text-[9px] font-black text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5 fill-emerald-50 shrink-0" /> ID Verified
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-bold text-slate-400 block mt-0.5">Unverified Host</span>
+                )}
               </div>
             </div>
 

@@ -1,13 +1,30 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { ListingStatus, ListingCategory } from '@/lib/types';
-import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock, Calendar, ShieldCheck, UserCheck, Plus, CheckCircle2, Handshake } from 'lucide-react';
+import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock, Calendar, Plus, CheckCircle2, Handshake } from 'lucide-react';
 import HomeSearchForm from '@/components/HomeSearchForm';
-import UserAvatar from '@/components/UserAvatar';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import ListingConnectTrigger from '@/components/ListingConnectTrigger';
 
 export const revalidate = 60; // Revalidate home page cache every minute
 
 export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+  const isAuthenticated = !!session?.user;
+  let currentUserVerified = false;
+  if (session?.user) {
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: (session.user as any).id },
+        select: { documentVerified: true },
+      });
+      currentUserVerified = dbUser?.documentVerified || false;
+    } catch (error) {
+      console.error('Failed to fetch home page user verification status:', error);
+    }
+  }
+
   // Fetch latest 3 approved listings
   let latestListings: any[] = [];
   try {
@@ -16,13 +33,32 @@ export default async function HomePage() {
         status: ListingStatus.APPROVED,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            documentVerified: true,
+            legalName: true,
+            email: true,
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
       take: 3,
     });
-    latestListings = dbListings.map(l => ({
-      ...l,
-      images: typeof l.images === 'string' ? JSON.parse(l.images) : l.images
-    }));
+    latestListings = dbListings.map(l => {
+      let parsedFacilities = {};
+      try {
+        parsedFacilities = typeof l.facilities === 'string' ? JSON.parse(l.facilities) : (l.facilities || {});
+      } catch (err) {}
+      return {
+        ...l,
+        images: typeof l.images === 'string' ? JSON.parse(l.images) : l.images,
+        parsedFacilities
+      };
+    });
   } catch (error) {
     console.error('Failed to fetch home page listings:', error);
   }
@@ -46,16 +82,24 @@ export default async function HomePage() {
             image: true,
             documentVerified: true,
             legalName: true,
+            email: true,
           }
         }
       },
       orderBy: { createdAt: 'desc' },
       take: 4,
     });
-    sharedHotels = dbSharedHotels.map(l => ({
-      ...l,
-      images: typeof l.images === 'string' ? JSON.parse(l.images) : l.images
-    }));
+    sharedHotels = dbSharedHotels.map(l => {
+      let parsedFacilities = {};
+      try {
+        parsedFacilities = typeof l.facilities === 'string' ? JSON.parse(l.facilities) : (l.facilities || {});
+      } catch (err) {}
+      return {
+        ...l,
+        images: typeof l.images === 'string' ? JSON.parse(l.images) : l.images,
+        parsedFacilities
+      };
+    });
   } catch (error) {
     console.error('Failed to fetch home page shared hotels:', error);
   }
@@ -216,19 +260,24 @@ export default async function HomePage() {
               const isRoommate = listing.category === ListingCategory.ROOMMATE;
               const displayCategory = isRoommate ? 'roommate' : listing.category.toLowerCase();
               return (
-                <Link
+                <div
                   key={listing.id}
-                  href={`/listings/${listing.id}`}
-                  className={`flex-shrink-0 w-72 snap-start md:w-auto group bg-white rounded-2xl overflow-hidden border ${
+                  className={`relative flex-shrink-0 w-72 snap-start md:w-auto group bg-white rounded-2xl overflow-hidden border ${
                     isRoommate ? 'border-violet-100 hover:border-violet-300' : 'border-slate-100 hover:border-slate-200'
                   } shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col h-full`}
                 >
+                  {/* Stretched Link covering the entire card click area */}
+                  <Link
+                    href={`/listings/${listing.id}`}
+                    className="absolute inset-0 z-10"
+                    aria-label={listing.title}
+                  />
                   <div className="relative h-48 bg-slate-100 overflow-hidden">
                     {listing.images && listing.images.length > 0 ? (
                       <img
                         src={listing.images[0]}
                         alt={listing.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
@@ -249,6 +298,27 @@ export default async function HomePage() {
                         ⭐ Featured
                       </span>
                     )}
+
+                    {/* Shared Accommodation Badges */}
+                    <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-25">
+                      {listing.category === 'ROOMMATE' && (
+                        <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                          {listing.roommateType === 'HAVE_ROOM' ? 'Has Room' : 'Needs Room'}
+                        </span>
+                      )}
+                      {listing.roommateGender && (
+                        <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                          {listing.roommateGender === 'MALE' ? '♂ Male Pref.' :
+                           listing.roommateGender === 'FEMALE' ? '♀ Female Pref.' :
+                           '🚻 Any Gender'}
+                        </span>
+                      )}
+                      {listing.category === 'HOTEL' && listing.isSharedHotelRoom && (
+                        <span className="bg-indigo-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                          {listing.parsedFacilities?.isAlreadyBooked === false ? '🔍 Co-Stay Query' : '🏨 Hotel Share'}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="p-6 flex-grow flex flex-col justify-between space-y-4">
@@ -274,8 +344,20 @@ export default async function HomePage() {
                         {listing.area}{listing.city ? `, ${listing.city}` : ''}
                       </span>
                     </div>
+
+                    {/* Host Profile & Connect */}
+                    {listing.user && (
+                      <div className="pt-3.5 border-t border-slate-100 relative z-20">
+                        <ListingConnectTrigger
+                          lister={listing.user}
+                          listing={listing}
+                          isAuthenticated={isAuthenticated}
+                          currentUserVerified={currentUserVerified}
+                        />
+                      </div>
+                    )}
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -318,15 +400,18 @@ export default async function HomePage() {
               <div className="flex overflow-x-auto pb-4 scrollbar-none snap-x gap-6 md:grid md:grid-cols-2 md:gap-6">
                 {sharedHotels.map((hotel) => {
                   const splitPrice = hotel.price / 2;
-                  const ownerName = hotel.user?.legalName || hotel.user?.name || 'Anonymous User';
-                  const isVerified = hotel.user?.documentVerified || false;
                   
                   return (
-                    <Link
+                    <div
                       key={hotel.id}
-                      href={`/listings/${hotel.id}`}
-                      className="flex-shrink-0 w-72 snap-start md:w-auto group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-150 hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full animate-fade-in"
+                      className="relative flex-shrink-0 w-72 snap-start md:w-auto group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-150 hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full animate-fade-in"
                     >
+                      {/* Stretched Link covering the entire card click area */}
+                      <Link
+                        href={`/listings/${hotel.id}`}
+                        className="absolute inset-0 z-10"
+                        aria-label={hotel.hotelName || hotel.title}
+                      />
                       <div className="relative h-40 bg-slate-100 overflow-hidden">
                         {hotel.images && hotel.images.length > 0 ? (
                           <img
@@ -339,17 +424,51 @@ export default async function HomePage() {
                             <Hotel className="w-10 h-10 text-indigo-450 stroke-[1.5]" />
                           </div>
                         )}
-                        <span className="absolute top-3 left-3 bg-indigo-650 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
-                          <Hotel className="w-3 h-3" /> Hotel Splitting
+                        <span className={`absolute top-3 left-3 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1 ${
+                          hotel.parsedFacilities?.isAlreadyBooked === false ? 'bg-violet-600' : 'bg-indigo-650'
+                        }`}>
+                          {hotel.parsedFacilities?.isAlreadyBooked === false ? (
+                            <>
+                              <Compass className="w-3 h-3" /> Co-Stay Query
+                            </>
+                          ) : (
+                            <>
+                              <Hotel className="w-3 h-3" /> Hotel Splitting
+                            </>
+                          )}
                         </span>
+
+                        {/* Shared Accommodation Badges */}
+                        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-25">
+                          {hotel.roommateGender && (
+                            <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
+                              {hotel.roommateGender === 'MALE' ? '♂ Male Pref.' :
+                               hotel.roommateGender === 'FEMALE' ? '♀ Female Pref.' :
+                               '🚻 Any Gender'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
                         {/* Hotel Name & Header */}
                         <div className="space-y-1.5">
-                          <h3 className="font-bold text-slate-800 text-lg line-clamp-1 group-hover:text-indigo-600 transition">
-                            {hotel.hotelName || hotel.title}
-                          </h3>
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-bold text-slate-800 text-lg line-clamp-1 group-hover:text-indigo-600 transition flex-grow">
+                              {hotel.hotelName || hotel.title}
+                            </h3>
+                            {hotel.roommateGender && (
+                              <span className={`shrink-0 text-[9px] font-extrabold px-2 py-0.5 rounded-md border uppercase select-none ${
+                                hotel.roommateGender === 'MALE' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                hotel.roommateGender === 'FEMALE' ? 'bg-pink-50 text-pink-700 border-pink-100' :
+                                'bg-slate-50 text-slate-650 border-slate-205'
+                              }`}>
+                                {hotel.roommateGender === 'MALE' ? 'Male Only' :
+                                 hotel.roommateGender === 'FEMALE' ? 'Female Only' :
+                                 'Any Gender'}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center text-xs text-slate-400 gap-1">
                             <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                             <span className="truncate">{hotel.area}, {hotel.city}</span>
@@ -357,7 +476,7 @@ export default async function HomePage() {
                         </div>
 
                         {/* Stay Dates */}
-                        <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between text-xs text-slate-650 font-semibold border border-slate-100">
+                        <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-between text-xs text-slate-655 font-semibold border border-slate-100">
                           <div className="flex items-center gap-1.5">
                             <Calendar className="w-4 h-4 text-indigo-500" />
                             <span>Stay Period:</span>
@@ -369,48 +488,52 @@ export default async function HomePage() {
 
                         {/* Price Breakdown */}
                         <div className="flex items-center justify-between pt-2">
-                          <div>
-                            <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Price</span>
-                            <span className="text-xs text-slate-500 font-semibold line-through">
-                              ₹{hotel.price.toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-emerald-650 uppercase font-black block">Your 50% Share</span>
-                            <span className="text-lg font-black text-emerald-650 flex items-center justify-end">
-                              <IndianRupee className="w-4 h-4 stroke-[3]" />
-                              <span>{splitPrice.toLocaleString('en-IN')}</span>
-                            </span>
-                          </div>
+                          {hotel.parsedFacilities?.isAlreadyBooked === false ? (
+                            <>
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Target Budget</span>
+                                <span className="text-xs text-slate-500 font-semibold">
+                                  ₹{hotel.price.toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-emerald-655 uppercase font-black block">Est. Split Share</span>
+                                <span className="text-lg font-black text-emerald-650 flex items-center justify-end">
+                                  <IndianRupee className="w-4 h-4 stroke-[3]" />
+                                  <span>{splitPrice.toLocaleString('en-IN')}</span>
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Price</span>
+                                <span className="text-xs text-slate-500 font-semibold line-through">
+                                  ₹{hotel.price.toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-emerald-650 uppercase font-black block">Your 50% Share</span>
+                                <span className="text-lg font-black text-emerald-650 flex items-center justify-end">
+                                  <IndianRupee className="w-4 h-4 stroke-[3]" />
+                                  <span>{splitPrice.toLocaleString('en-IN')}</span>
+                                </span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      {/* Lister Verification & Action */}
-                      <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2 max-w-[60%]">
-                          <UserAvatar
-                            image={hotel.user?.image}
-                            name={ownerName}
-                            fallbackClassName="bg-indigo-100 text-indigo-600 font-bold text-[10px]"
-                          />
-                          <div className="truncate">
-                            <span className="font-bold text-slate-700 block truncate text-left">{ownerName}</span>
-                            {isVerified ? (
-                              <span className="text-[9px] font-black text-emerald-600 flex items-center gap-0.5">
-                                <ShieldCheck className="w-3 h-3 fill-emerald-50" /> ID Verified
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-bold text-amber-600">Unverified ID</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <span className="inline-flex items-center gap-1 font-bold text-indigo-600 group-hover:text-indigo-700 transition">
-                          <span>Connect</span>
-                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                        </span>
+                      {/* Host Profile & Connect */}
+                      <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 relative z-20">
+                        <ListingConnectTrigger
+                          lister={hotel.user}
+                          listing={hotel}
+                          isAuthenticated={isAuthenticated}
+                          currentUserVerified={currentUserVerified}
+                        />
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>
@@ -427,7 +550,7 @@ export default async function HomePage() {
               <div className="space-y-2">
                 <h3 className="text-xl font-extrabold tracking-tight">Have a hotel room booked already?</h3>
                 <p className="text-xs text-slate-350 leading-relaxed font-light">
-                  Don't pay the full bill alone! List your booking details securely, verify your profile, and find a verified traveler to share the room and split the cost 50/50.
+                  Don&apos;t pay the full bill alone! List your booking details securely, verify your profile, and find a verified traveler to share the room and split the cost 50/50.
                 </p>
               </div>
 

@@ -418,13 +418,22 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
     const endpoint = isEditMode ? `/api/listings/${initialData.id}` : '/api/listings';
     const method = isEditMode ? 'PUT' : 'POST';
 
-    // If it's a shared hotel room, force requireVerification and validate fields
+    // If it's a shared hotel room, force requireVerification and validate fields (if already booked)
     if (data.category === ListingCategory.HOTEL && data.isSharedHotelRoom) {
-      data.requireVerification = true;
-      if (!data.hotelName?.trim() || !data.hotelBookingRef?.trim() || !data.checkInDate || !data.checkOutDate || !data.hotelBookingProofUrl) {
-        toast.error('All hotel room sharing details and booking proof are required.');
-        setSubmitting(false);
-        return;
+      const isAlreadyBooked = facilities.isAlreadyBooked !== false;
+      if (isAlreadyBooked) {
+        data.requireVerification = true;
+        if (!data.hotelName?.trim() || !data.hotelBookingRef?.trim() || !data.checkInDate || !data.checkOutDate || !data.hotelBookingProofUrl) {
+          toast.error('All hotel room sharing details and booking proof are required.');
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        if (!data.checkInDate || !data.checkOutDate) {
+          toast.error('Please specify check-in and check-out dates for your travel.');
+          setSubmitting(false);
+          return;
+        }
       }
     }
 
@@ -547,49 +556,67 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
           </div>
         </div>
 
+        {/* Gender Preference / Designation (for stay/residential categories) */}
+        {['HOUSE', 'FLAT', 'PG', 'VILLA', 'HOSTEL', 'ROOMMATE', 'DORMITORY', 'HOTEL', 'DHARAMSHALA', 'HOURLY_ROOM', 'HOUSE_GUEST', 'SHARE_STAY'].includes(watchCategory) && (
+          <div className="space-y-1.5">
+            <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Gender Preference / Designation</label>
+            <select
+              {...register('roommateGender')}
+              className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition font-semibold"
+            >
+              <option value="ANY">Any / Co-ed / No Preference</option>
+              <option value="MALE">Male / Boys Preferred</option>
+              <option value="FEMALE">Female / Girls Preferred</option>
+            </select>
+          </div>
+        )}
+
         {/* House Guest Custom Stay Configuration */}
         {watchCategory === ListingCategory.HOUSE_GUEST && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-indigo-50/50 border border-indigo-100/85 rounded-2xl">
-            <div className="space-y-1.5">
-              <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Stay Pricing Model</label>
-              <select
-                {...register('priceType')}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'FREE' || val === 'OTHER') {
-                    setValue('price', 0);
-                  }
-                }}
-                className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-medium"
-              >
-                <option value="PAID">Paid Stay (Daily charge)</option>
-                <option value="FREE">🎁 100% Free Stay (Couchsurfing / Help welcome)</option>
-                <option value="OTHER">🤝 Exchange Stay (Housework, language swap, etc.)</option>
-              </select>
+          <div className="space-y-4 p-5 bg-indigo-50/50 border border-indigo-100/85 rounded-2xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Stay Pricing Model</label>
+                <select
+                  {...register('priceType')}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'FREE' || val === 'OTHER') {
+                      setValue('price', 0);
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-medium"
+                >
+                  <option value="PAID">Paid Stay (Daily charge)</option>
+                  <option value="FREE">🎁 100% Free Stay (Couchsurfing / Help welcome)</option>
+                  <option value="OTHER">🤝 Exchange Stay (Housework, language swap, etc.)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5 flex flex-col justify-center">
+                <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none mt-4">
+                  <input
+                    type="checkbox"
+                    {...register('requireVerification')}
+                    className="w-4 h-4 rounded-sm border-slate-350 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <span className="flex items-center gap-1">
+                    <span>🔒 Require ID Verification to apply/view details</span>
+                  </span>
+                </label>
+                <p className="text-[10px] text-slate-400 mt-1 pl-6">
+                  Only travelers with a verified identity document badge will be allowed to view details.
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-1.5 flex flex-col justify-center">
-              <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none mt-4">
-                <input
-                  type="checkbox"
-                  {...register('requireVerification')}
-                  className="w-4 h-4 rounded-sm border-slate-350 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
-                />
-                <span className="flex items-center gap-1">
-                  <span>🔒 Require ID Verification to apply/view details</span>
-                </span>
-              </label>
-              <p className="text-[10px] text-slate-400 mt-1 pl-6">
-                Only travelers with a verified identity document badge will be allowed to view details.
-              </p>
-            </div>
           </div>
         )}
 
         {/* Roommate Options (Conditional) */}
         {watchCategory === 'ROOMMATE' && (
           <div className="space-y-4 p-5 bg-indigo-50/50 border border-indigo-100/80 rounded-2xl">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div className="space-y-1.5">
                 <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">What is your situation?</label>
                 <select
@@ -598,18 +625,6 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                 >
                   <option value="HAVE_ROOM">I have a room/flat, looking for a roommate</option>
                   <option value="NEED_ROOM">I need a room/flat & roommate(s)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Preferred Roommate Gender</label>
-                <select
-                  {...register('roommateGender')}
-                  className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-sm px-4 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-medium"
-                >
-                  <option value="ANY">Any Gender</option>
-                  <option value="MALE">Male Preferred</option>
-                  <option value="FEMALE">Female Preferred</option>
                 </select>
               </div>
             </div>
@@ -710,20 +725,8 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
               </div>
             </div>
 
-            {/* Gender Preference */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Preferred Gender</label>
-                <select
-                  {...register('roommateGender')}
-                  className="w-full bg-white border border-slate-200 focus:border-fuchsia-500 text-xs px-3 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-semibold"
-                >
-                  <option value="ANY">Any Gender Welcome</option>
-                  <option value="MALE">Male Only</option>
-                  <option value="FEMALE">Female Only</option>
-                </select>
-              </div>
-
+            {/* Open to anyone */}
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1.5 flex flex-col justify-end">
                 <label className="flex items-center space-x-2.5 text-slate-700 text-xs font-semibold cursor-pointer select-none bg-white border border-slate-200 px-3 py-2.5 rounded-xl hover:border-fuchsia-300 transition">
                   <input
@@ -740,7 +743,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
             {/* Quick info banner */}
             <div className="bg-fuchsia-50 border border-fuchsia-100 p-3 rounded-xl text-xs text-fuchsia-800 font-semibold flex items-start gap-2">
               <span className="text-base leading-none">💡</span>
-              <span>Once listed, anyone can click "I'm Interested — Join This Share" on your listing to express interest. You'll get a notification and can coordinate directly.</span>
+              <span>Once listed, anyone can click &quot;I&apos;m Interested — Join This Share&quot; on your listing to express interest. You&apos;ll get a notification and can coordinate directly.</span>
             </div>
           </div>
         )}
@@ -753,7 +756,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                 <input
                   type="checkbox"
                   {...register('isSharedHotelRoom')}
-                  className="w-4 h-4 rounded-sm border-slate-350 text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
                 />
                 <span>🤝 List as Shared Hotel Room (Split Cost 50/50)</span>
               </label>
@@ -761,35 +764,64 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
             
             {watch('isSharedHotelRoom') && (
               <div className="space-y-4 pt-2 border-t border-indigo-100/50">
-                <p className="text-xs text-amber-800 font-bold bg-amber-50 border border-amber-100 p-3 rounded-xl">
-                  ⚠️ Security Policy: Hotel room shares require both parties to be ID verified. Uploading a valid booking confirmation proof is mandatory to protect travellers.
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Hotel Name</label>
-                    <input
-                      type="text"
-                      {...register('hotelName')}
-                      placeholder="e.g. Radisson Blu MG Road"
-                      className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Confirmation ID</label>
-                    <input
-                      type="text"
-                      {...register('hotelBookingRef')}
-                      placeholder="e.g. BK1234567"
-                      className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
-                    />
-                  </div>
+                {/* Booking Status Dropdown */}
+                <div className="space-y-1.5">
+                  <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Hotel Booking Status</label>
+                  <select
+                    value={facilities.isAlreadyBooked !== false ? 'true' : 'false'}
+                    onChange={(e) => {
+                      const val = e.target.value === 'true';
+                      handleFacilityChange('isAlreadyBooked', val);
+                      if (!val) {
+                        setValue('hotelName', '');
+                        setValue('hotelBookingRef', '');
+                        setValue('hotelBookingProofUrl', '');
+                      }
+                    }}
+                    className="w-full bg-white border border-slate-205 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden transition text-slate-700 font-semibold"
+                  >
+                    <option value="true">🏨 Yes, Hotel Already Booked (requires booking proof & receipt)</option>
+                    <option value="false">🔍 No, Pre-Booking Query (connect & select hotel together later)</option>
+                  </select>
                 </div>
 
+                {facilities.isAlreadyBooked !== false ? (
+                  <>
+                    <p className="text-xs text-amber-800 font-bold bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                      ⚠️ Security Policy: Hotel room shares require both parties to be ID verified. Uploading a valid booking confirmation proof is mandatory to protect travellers.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Hotel Name</label>
+                        <input
+                          type="text"
+                          {...register('hotelName')}
+                          placeholder="e.g. Radisson Blu MG Road"
+                          className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Confirmation ID</label>
+                        <input
+                          type="text"
+                          {...register('hotelBookingRef')}
+                          placeholder="e.g. BK1234567"
+                          className="w-full bg-white border border-slate-200 focus:border-indigo-500 text-xs px-3 py-2.5 rounded-xl outline-hidden font-semibold"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-indigo-805 font-bold bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
+                    ✨ Pre-booking Co-Stay Query: You want to connect with a travel companion first and select/book a hotel together later. No booking details or verification receipts are required to publish this query.
+                  </p>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Check-In Date</label>
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Travel Check-In Date</label>
                     <input
                       type="date"
                       {...register('checkInDate')}
@@ -798,7 +830,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Check-Out Date</label>
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Travel Check-Out Date</label>
                     <input
                       type="date"
                       {...register('checkOutDate')}
@@ -808,55 +840,57 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                 </div>
 
                 {/* Booking Proof File Upload */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Proof Receipt (Upload Image)</label>
-                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-white border border-slate-100 p-4 rounded-xl shadow-2xs">
-                    <label className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-755 border border-slate-200 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition select-none active:scale-95 shrink-0">
-                      <Upload className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Select Booking Receipt Scan</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={async (e) => {
-                          const files = e.target.files;
-                          if (!files || files.length === 0) return;
-                          setUploading(true);
-                          const formData = new FormData();
-                          formData.append('file', files[0]);
-                          try {
-                            const res = await fetch('/api/upload', {
-                              method: 'POST',
-                              body: formData,
-                            });
-                            const data = await res.json();
-                            if (!res.ok) {
-                              toast.error(data.error || 'Failed to upload booking proof.');
-                            } else {
-                              setValue('hotelBookingProofUrl', data.urls[0]);
-                              toast.success('Booking proof uploaded successfully!');
+                {facilities.isAlreadyBooked !== false && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booking Proof Receipt (Upload Image)</label>
+                    <div className="flex flex-col sm:flex-row items-center gap-4 bg-white border border-slate-100 p-4 rounded-xl shadow-2xs">
+                      <label className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-755 border border-slate-200 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition select-none active:scale-95 shrink-0">
+                        <Upload className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Select Booking Receipt Scan</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={async (e) => {
+                            const files = e.target.files;
+                            if (!files || files.length === 0) return;
+                            setUploading(true);
+                            const formData = new FormData();
+                            formData.append('file', files[0]);
+                            try {
+                              const res = await fetch('/api/upload', {
+                                method: 'POST',
+                                body: formData,
+                              });
+                              const data = await res.json();
+                              if (!res.ok) {
+                                toast.error(data.error || 'Failed to upload booking proof.');
+                              } else {
+                                setValue('hotelBookingProofUrl', data.urls[0]);
+                                toast.success('Booking proof uploaded successfully!');
+                              }
+                            } catch {
+                              toast.error('Failed to complete upload.');
+                            } finally {
+                              setUploading(false);
                             }
-                          } catch {
-                            toast.error('Failed to complete upload.');
-                          } finally {
-                            setUploading(false);
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                    <div className="text-[11px] text-slate-400 font-semibold truncate flex-grow">
-                      {watch('hotelBookingProofUrl') ? (
-                        <span className="text-emerald-600 font-bold">✓ Booking proof uploaded! Ready.</span>
-                      ) : (
-                        'No file uploaded. Upload a screenshot or receipt image.'
-                      )}
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      <div className="text-[11px] text-slate-400 font-semibold truncate flex-grow">
+                        {watch('hotelBookingProofUrl') ? (
+                          <span className="text-emerald-600 font-bold">✓ Booking proof uploaded! Ready.</span>
+                        ) : (
+                          'No file uploaded. Upload a screenshot or receipt image.'
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {watch('price') > 0 && (
                   <p className="text-xs text-indigo-750 font-bold bg-indigo-50 border border-indigo-100/50 p-2.5 rounded-xl">
-                    💰 Splitting cost: Both parties will split the total booking cost of ₹{Number(watch('price')).toLocaleString('en-IN')} 50/50 (₹{(Number(watch('price')) / 2).toLocaleString('en-IN')} each).
+                    💰 Splitting cost: Both parties will split the total booking cost/budget of ₹{Number(watch('price')).toLocaleString('en-IN')} 50/50 (₹{(Number(watch('price')) / 2).toLocaleString('en-IN')} each).
                   </p>
                 )}
               </div>
@@ -981,7 +1015,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
 
         {(watchCategory === 'PG' || watchCategory === 'HOSTEL') && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-1.5">
                 <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Furnished Status</label>
                 <select
@@ -1008,6 +1042,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
                   <option value="JAIN">🙏 Jain Food Available</option>
                 </select>
               </div>
+
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
@@ -1238,6 +1273,8 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
 
         {watchCategory === 'DORMITORY' && (
           <div className="space-y-4">
+            {/* Gender designated at the top */}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
               <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
                 <input

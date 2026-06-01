@@ -1,8 +1,7 @@
 import prisma from '@/lib/prisma';
 import { ListingStatus, ListingCategory } from '@/lib/types';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Building, MapPin, IndianRupee, ChevronLeft, ChevronRight, Users, Sparkles, Lock, LayoutGrid, List } from 'lucide-react';
+import { Building, MapPin, IndianRupee, ChevronLeft, ChevronRight, Users, Lock, LayoutGrid, List } from 'lucide-react';
 import ListingFilters from './ListingFilters';
 import AdSensePlaceholder from '@/components/AdSensePlaceholder';
 import { getServerSession } from 'next-auth';
@@ -11,6 +10,7 @@ import CompareButton from '@/components/CompareButton';
 import CompareBar from '@/components/CompareBar';
 import { getNearbyTransit } from '@/lib/transit';
 import { calculateCompatibility } from '@/lib/roommateMatcher';
+import ListingConnectTrigger from '@/components/ListingConnectTrigger';
 
 interface ListingsPageProps {
   searchParams: Promise<{
@@ -59,17 +59,21 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   const sessionUserId = session?.user ? (session.user as any).id : null;
   
   let currentUserProfile: any = null;
+  let currentUserVerified = false;
   if (isAuthenticated && sessionUserId) {
     try {
       const dbUser = await prisma.user.findUnique({
         where: { id: sessionUserId },
-        select: { lifestyleProfile: true },
+        select: { lifestyleProfile: true, documentVerified: true },
       });
-      if (dbUser && dbUser.lifestyleProfile) {
-        currentUserProfile = JSON.parse(dbUser.lifestyleProfile);
+      if (dbUser) {
+        currentUserVerified = dbUser.documentVerified;
+        if (dbUser.lifestyleProfile) {
+          currentUserProfile = JSON.parse(dbUser.lifestyleProfile);
+        }
       }
     } catch (err) {
-      console.error('Failed to load current user roommate profile:', err);
+      console.error('Failed to load current user profile details:', err);
     }
   }
 
@@ -119,8 +123,8 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     where.city = city;
   }
 
-  if (category === ListingCategory.ROOMMATE) {
-    if (roommateType) where.roommateType = roommateType;
+  if (category === ListingCategory.ROOMMATE || category === ListingCategory.HOTEL || category === ListingCategory.SHARE_STAY) {
+    if (roommateType && category === ListingCategory.ROOMMATE) where.roommateType = roommateType;
     if (roommateGender) where.roommateGender = roommateGender;
   }
 
@@ -175,6 +179,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
               name: true,
               image: true,
               lifestyleProfile: true,
+              documentVerified: true,
+              legalName: true,
+              email: true,
             }
           }
         }
@@ -239,6 +246,10 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         const hasMetro = transitResults[l.id] !== undefined ? transitResults[l.id] : null;
         const ownerProfile = (l as any).user?.lifestyleProfile ? JSON.parse((l as any).user.lifestyleProfile) : null;
         const matchScore = calculateCompatibility(currentUserProfile, ownerProfile);
+        let parsedFacilities = {};
+        try {
+          parsedFacilities = typeof l.facilities === 'string' ? JSON.parse(l.facilities) : (l.facilities || {});
+        } catch (err) {}
         
         return {
           ...l,
@@ -247,6 +258,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
           commuteDistance: commute ? commute.distanceKm : null,
           hasMetro,
           matchScore,
+          parsedFacilities,
         };
       }).filter(l => {
         if (commuteLat !== undefined && commuteLng !== undefined && (l.commuteDuration === null || l.commuteDuration > commuteMaxTime)) {
@@ -279,6 +291,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
               name: true,
               image: true,
               lifestyleProfile: true,
+              documentVerified: true,
+              legalName: true,
+              email: true,
             }
           }
         }
@@ -289,11 +304,16 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         const distance = calculateDistance(lat, lng, l.lat, l.lng);
         const ownerProfile = (l as any).user?.lifestyleProfile ? JSON.parse((l as any).user.lifestyleProfile) : null;
         const matchScore = calculateCompatibility(currentUserProfile, ownerProfile);
+        let parsedFacilities = {};
+        try {
+          parsedFacilities = typeof l.facilities === 'string' ? JSON.parse(l.facilities) : (l.facilities || {});
+        } catch (err) {}
         return {
           ...l,
           images: parsedImages,
           distance,
           matchScore,
+          parsedFacilities,
         };
       }).filter(l => l.distance <= radius);
 
@@ -319,6 +339,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                 name: true,
                 image: true,
                 lifestyleProfile: true,
+                documentVerified: true,
+                legalName: true,
+                email: true,
               }
             }
           }
@@ -328,10 +351,15 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
       listings = dbListings.map(l => {
         const ownerProfile = (l as any).user?.lifestyleProfile ? JSON.parse((l as any).user.lifestyleProfile) : null;
         const matchScore = calculateCompatibility(currentUserProfile, ownerProfile);
+        let parsedFacilities = {};
+        try {
+          parsedFacilities = typeof l.facilities === 'string' ? JSON.parse(l.facilities) : (l.facilities || {});
+        } catch (err) {}
         return {
           ...l,
           images: typeof l.images === 'string' ? JSON.parse(l.images) : l.images,
           matchScore,
+          parsedFacilities,
         };
       });
       total = dbTotal;
@@ -481,19 +509,24 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                   return (
                     <div key={listing.id} className="relative">
                       <CompareButton listingId={listing.id} className="top-2 right-2 scale-90" />
-                      <Link
-                        href={`/listings/${listing.id}`}
-                        className={`bg-white rounded-xl overflow-hidden border ${
+                      <div
+                        className={`relative bg-white rounded-xl overflow-hidden border ${
                           isRoommate ? 'border-violet-100 hover:border-violet-300' : 'border-slate-100 hover:border-slate-200'
                         } shadow-xs hover:shadow-md transition-all duration-150 flex items-center p-2.5 gap-3 group`}
                       >
+                        {/* Stretched Link covering the entire card click area */}
+                        <Link
+                          href={`/listings/${listing.id}`}
+                          className="absolute inset-0 z-10"
+                          aria-label={listing.title}
+                        />
                         {/* Compact Thumbnail (80x80px) */}
                         <div className="relative w-20 h-20 bg-slate-50 rounded-lg overflow-hidden shrink-0">
                           {listing.images && listing.images.length > 0 ? (
                             <img
                               src={listing.images[0]}
                               alt={listing.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
@@ -509,67 +542,88 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                           <span className={`absolute bottom-0 left-0 right-0 ${
                             isRoommate ? 'bg-violet-600/90' : 'bg-indigo-600/90'
                           } text-white text-[7px] font-bold py-0.5 text-center uppercase tracking-wide select-none`}>
-                            {displayCategory}
+                            {listing.category === 'HOTEL' && listing.isSharedHotelRoom
+                              ? (listing.parsedFacilities?.isAlreadyBooked === false ? 'Co-Stay' : 'Hotel Share')
+                              : displayCategory}
                           </span>
                         </div>
 
                         {/* Dense Content Details */}
-                        <div className="flex-grow min-w-0 flex flex-col justify-between h-20 py-0.5 space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-extrabold text-slate-800 text-sm truncate group-hover:text-indigo-600 transition">
-                              {listing.title}
-                            </h3>
-                            <div className={`flex items-center shrink-0 ${isRoommate ? 'text-violet-600' : 'text-indigo-600'} text-sm font-extrabold`}>
-                              <IndianRupee className="w-3 h-3 stroke-[2.5]" />
-                              <span>{listing.price.toLocaleString('en-IN')}</span>
-                              <span className="text-[10px] text-slate-455 font-normal ml-0.5">
-                                {isRoommate ? '/sh' : '/mo'}
-                              </span>
+                        <div className="flex-grow min-w-0 flex flex-col justify-between min-h-20 h-auto py-1 space-y-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <h3 className="font-extrabold text-slate-800 text-sm truncate group-hover:text-indigo-600 transition">
+                                {listing.title}
+                              </h3>
+                              <div className={`flex items-center shrink-0 ${isRoommate ? 'text-violet-600' : 'text-indigo-600'} text-sm font-extrabold`}>
+                                <IndianRupee className="w-3 h-3 stroke-[2.5]" />
+                                <span>{listing.price.toLocaleString('en-IN')}</span>
+                                <span className="text-[10px] text-slate-455 font-normal ml-0.5">
+                                  {isRoommate ? '/sh' : '/mo'}
+                                </span>
+                              </div>
                             </div>
+
+                            <div className="flex items-center justify-between text-xs text-slate-455 gap-2">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                <span className="truncate">{listing.area}{listing.city ? `, ${listing.city}` : ''}</span>
+                              </div>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                {listing.roommateGender && (
+                                  <span className="bg-slate-100 text-slate-700 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase">
+                                    {listing.roommateGender === 'MALE' ? '♂ Male' :
+                                     listing.roommateGender === 'FEMALE' ? '♀ Female' :
+                                     '🚻 Any'}
+                                  </span>
+                                )}
+                                {isRoommate && isAuthenticated && listing.matchScore !== undefined && listing.matchScore !== null && (
+                                  <span className="bg-violet-50 text-violet-755 font-extrabold px-1.5 py-0.5 rounded text-[8px] uppercase">
+                                    🧩 {listing.matchScore}%
+                                  </span>
+                                )}
+                                {listing.distance !== undefined && listing.distance !== null && (
+                                  <span className="bg-emerald-50 text-emerald-755 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase">
+                                    📍 {listing.distance.toFixed(1)}km
+                                  </span>
+                                )}
+                                {listing.commuteDuration !== undefined && listing.commuteDuration !== null && (
+                                  <span className="bg-violet-50 text-violet-755 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase flex items-center gap-0.5">
+                                    🕐 {listing.commuteDuration}m
+                                  </span>
+                                )}
+                                {listing.hasMetro && (
+                                  <span className="bg-indigo-50 text-indigo-755 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase">
+                                    🚇 Metro
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {isAuthenticated ? (
+                              <p className="text-[10px] text-slate-400 line-clamp-1 truncate font-medium leading-normal">
+                                {listing.description}
+                              </p>
+                            ) : (
+                              <p className="text-[9px] text-slate-350 font-bold uppercase tracking-wider flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5 text-slate-300" />
+                                <span>Login to view description</span>
+                              </p>
+                            )}
                           </div>
 
-                          <div className="flex items-center justify-between text-xs text-slate-455 gap-2">
-                            <div className="flex items-center gap-1 min-w-0">
-                              <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                              <span className="truncate">{listing.area}{listing.city ? `, ${listing.city}` : ''}</span>
-                            </div>
-
-                            <div className="flex items-center gap-1 shrink-0">
-                              {isRoommate && isAuthenticated && listing.matchScore !== undefined && listing.matchScore !== null && (
-                                <span className="bg-violet-50 text-violet-755 font-extrabold px-1.5 py-0.5 rounded text-[8px] uppercase">
-                                  🧩 {listing.matchScore}%
-                                </span>
-                              )}
-                              {listing.distance !== undefined && listing.distance !== null && (
-                                <span className="bg-emerald-50 text-emerald-755 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase">
-                                  📍 {listing.distance.toFixed(1)}km
-                                </span>
-                              )}
-                              {listing.commuteDuration !== undefined && listing.commuteDuration !== null && (
-                                <span className="bg-violet-50 text-violet-755 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase flex items-center gap-0.5">
-                                  🕐 {listing.commuteDuration}m
-                                </span>
-                              )}
-                              {listing.hasMetro && (
-                                <span className="bg-indigo-50 text-indigo-755 font-bold px-1.5 py-0.5 rounded text-[8px] uppercase">
-                                  🚇 Metro
-                                </span>
-                              )}
-                            </div>
+                          {/* Host info & Connect compact trigger */}
+                          <div className="pt-2 border-t border-slate-100 relative z-20">
+                            <ListingConnectTrigger
+                              lister={listing.user}
+                              listing={listing}
+                              isAuthenticated={isAuthenticated}
+                              currentUserVerified={currentUserVerified}
+                            />
                           </div>
-
-                          {isAuthenticated ? (
-                            <p className="text-[10px] text-slate-400 line-clamp-1 truncate font-medium leading-normal">
-                              {listing.description}
-                            </p>
-                          ) : (
-                            <p className="text-[9px] text-slate-350 font-bold uppercase tracking-wider flex items-center gap-1">
-                              <Lock className="w-2.5 h-2.5 text-slate-300" />
-                              <span>Login to view description</span>
-                            </p>
-                          )}
                         </div>
-                      </Link>
+                      </div>
                     </div>
                   );
                 }
@@ -611,7 +665,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                       <span className={`absolute top-4 left-4 ${
                         isRoommate ? 'bg-violet-600' : 'bg-indigo-600'
                       } text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-md uppercase select-none`}>
-                        {displayCategory}
+                        {listing.category === 'HOTEL' && listing.isSharedHotelRoom
+                          ? (listing.parsedFacilities?.isAlreadyBooked === false ? '🔍 Co-Stay Query' : '🏨 Hotel Share')
+                          : displayCategory}
                       </span>
 
                       {/* Featured Badge */}
@@ -621,17 +677,26 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         </span>
                       )}
 
-                      {/* Roommate Sub-badges */}
-                      {isRoommate && (
-                        <div className="absolute bottom-3 left-3 flex flex-wrap gap-1">
+                      {/* Shared Accommodation Badges */}
+                      <div className="absolute bottom-3 left-3 flex flex-wrap gap-1 z-25">
+                        {listing.category === 'ROOMMATE' && (
                           <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
                             {listing.roommateType === 'HAVE_ROOM' ? 'Has Room' : 'Needs Room'}
                           </span>
+                        )}
+                        {listing.roommateGender && (
                           <span className="bg-slate-900/70 backdrop-blur-xs text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase">
-                            {listing.roommateGender === 'MALE' ? 'Male Pref.' : listing.roommateGender === 'FEMALE' ? 'Female Pref.' : 'Any Gender'}
+                            {listing.roommateGender === 'MALE' ? '♂ Male Pref.' :
+                             listing.roommateGender === 'FEMALE' ? '♀ Female Pref.' :
+                             '🚻 Any Gender'}
                           </span>
-                        </div>
-                      )}
+                        )}
+                        {listing.category === 'HOTEL' && listing.isSharedHotelRoom && (
+                          <span className="bg-indigo-650/90 text-white text-[8px] font-bold px-2 py-0.5 rounded-sm uppercase font-semibold">
+                            {listing.parsedFacilities?.isAlreadyBooked === false ? '🔍 Co-Stay' : '🏨 Hotel Split'}
+                          </span>
+                        )}
+                      </div>
 
                       {/* Food Type Badge for PG/Hostel/Dormitory */}
                       {listing.foodType && (listing.category === 'PG' || listing.category === 'HOSTEL' || listing.category === 'DORMITORY') && (
@@ -659,7 +724,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                             <IndianRupee className="w-3.5 h-3.5 stroke-[2.5]" />
                             <span>{listing.price.toLocaleString('en-IN')}</span>
                             <span className="text-xs text-slate-400 font-normal ml-1">
-                              {isRoommate ? '/ share' : '/ month'}
+                              {isRoommate ? '/ share' : (listing.category === 'HOTEL' && listing.isSharedHotelRoom && listing.parsedFacilities?.isAlreadyBooked === false ? '/ split budget' : '/ month')}
                             </span>
                           </div>
 
@@ -683,9 +748,22 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                           )}
                         </div>
                         
-                        <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition">
-                          {listing.title}
-                        </h3>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-600 transition flex-grow">
+                            {listing.title}
+                          </h3>
+                          {listing.category === 'HOTEL' && listing.isSharedHotelRoom && listing.roommateGender && (
+                            <span className={`shrink-0 text-[9px] font-extrabold px-2 py-0.5 rounded-md border uppercase select-none ${
+                              listing.roommateGender === 'MALE' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                              listing.roommateGender === 'FEMALE' ? 'bg-pink-50 text-pink-700 border-pink-100' :
+                              'bg-slate-50 text-slate-650 border-slate-205'
+                            }`}>
+                              {listing.roommateGender === 'MALE' ? 'Male Only' :
+                               listing.roommateGender === 'FEMALE' ? 'Female Only' :
+                               'Any Gender'}
+                            </span>
+                          )}
+                        </div>
 
                         {/* Description Preview: Locked for guests */}
                         {isAuthenticated ? (
@@ -700,7 +778,6 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         )}
                       </div>
 
-                      {/* Location Badge */}
                       {/* Location Badge */}
                       <div className="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-50 gap-1">
                         <div className="flex items-center gap-1 min-w-0">
@@ -721,10 +798,20 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                           </span>
                         )}
                         {listing.hasMetro && (
-                          <span className="shrink-0 bg-indigo-50 text-indigo-750 font-bold px-2 py-0.5 rounded text-[10px] uppercase">
+                          <span className="shrink-0 bg-indigo-50 text-indigo-755 font-bold px-2 py-0.5 rounded text-[10px] uppercase">
                             🚇 Near Metro
                           </span>
                         )}
+                      </div>
+
+                      {/* Host Profile & Connect */}
+                      <div className="pt-3.5 border-t border-slate-100 relative z-20">
+                        <ListingConnectTrigger
+                          lister={listing.user}
+                          listing={listing}
+                          isAuthenticated={isAuthenticated}
+                          currentUserVerified={currentUserVerified}
+                        />
                       </div>
                     </div>
                   </div>

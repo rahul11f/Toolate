@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { User, Lock, Mail, Camera, Loader2, Save, ShieldCheck, CheckCircle2, AlertTriangle, Upload } from 'lucide-react';
+import UserAvatar from './UserAvatar';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -298,18 +299,12 @@ export default function ProfileSettings() {
         {/* Avatar Upload */}
         <div className="flex flex-col items-center sm:flex-row sm:space-x-6 space-y-4 sm:space-y-0 pb-4">
           <div className="relative group">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Avatar"
-                className="w-24 h-24 rounded-full object-cover border-2 border-indigo-100 shadow-md"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-500 font-extrabold text-3xl shadow-md">
-                {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
-              </div>
-            )}
+            <UserAvatar
+              image={avatarUrl}
+              name={session?.user?.name || 'User'}
+              sizeClassName="w-24 h-24"
+              fallbackClassName="bg-indigo-50 border-2 border-indigo-100 text-indigo-500 font-extrabold text-3xl shadow-md"
+            />
             
             <label className="absolute bottom-0 right-0 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full cursor-pointer shadow-md transition-all active:scale-90">
               {uploading ? (

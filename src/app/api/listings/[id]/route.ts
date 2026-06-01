@@ -9,7 +9,7 @@ const updateListingSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.').optional(),
   description: z.string().min(10, 'Description must be at least 10 characters.').optional(),
   category: z.nativeEnum(ListingCategory).optional(),
-  price: z.number().positive('Price must be a positive number.').optional(),
+  price: z.number().nonnegative('Price must be 0 or positive.').optional(),
   openingHours: z.string().min(1, 'Opening hours are required.').optional(),
   closingHours: z.string().min(1, 'Closing hours are required.').optional(),
   landlordTerms: z.string().min(5, 'Landlord terms must be at least 5 characters.').optional(),
@@ -24,6 +24,13 @@ const updateListingSchema = z.object({
   roommateType: z.enum(['HAVE_ROOM', 'NEED_ROOM']).optional().nullable(),
   roommateGender: z.enum(['MALE', 'FEMALE', 'ANY']).optional().nullable(),
   images: z.array(z.string().url()).min(1, 'At least one image is required.').max(5, 'Maximum 5 images allowed.').optional(),
+  requireVerification: z.boolean().optional(),
+  isSharedHotelRoom: z.boolean().optional(),
+  hotelName: z.string().optional().nullable(),
+  hotelBookingRef: z.string().optional().nullable(),
+  checkInDate: z.string().optional().nullable(),
+  checkOutDate: z.string().optional().nullable(),
+  hotelBookingProofUrl: z.string().optional().nullable(),
 });
 
 // GET: Retrieve single listing by ID
@@ -122,6 +129,53 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (validationResult.data.images) {
       updateData.images = JSON.stringify(validationResult.data.images);
     }
+    if (body.facilities) {
+      updateData.facilities = body.facilities;
+    }
+    if (validationResult.data.checkInDate !== undefined) {
+      updateData.checkInDate = validationResult.data.checkInDate ? new Date(validationResult.data.checkInDate) : null;
+    }
+    if (validationResult.data.checkOutDate !== undefined) {
+      updateData.checkOutDate = validationResult.data.checkOutDate ? new Date(validationResult.data.checkOutDate) : null;
+      if (validationResult.data.checkOutDate) {
+        updateData.expiresAt = new Date(validationResult.data.checkOutDate);
+      }
+    }
+
+    // Validate hotel room sharing and force verification (if already booked)
+    let requireVerification = validationResult.data.requireVerification !== undefined ? validationResult.data.requireVerification : listing.requireVerification;
+    let isAlreadyBooked = true;
+    try {
+      const facilitiesData = body.facilities ? (typeof body.facilities === 'string' ? JSON.parse(body.facilities) : body.facilities) : {};
+      if (facilitiesData.isAlreadyBooked === false) {
+        isAlreadyBooked = false;
+      }
+    } catch {}
+
+    const category = validationResult.data.category || listing.category;
+    const isSharedHotelRoom = validationResult.data.isSharedHotelRoom !== undefined ? validationResult.data.isSharedHotelRoom : listing.isSharedHotelRoom;
+    
+    if (category === ListingCategory.HOTEL && isSharedHotelRoom) {
+      if (isAlreadyBooked) {
+        requireVerification = true;
+        const hotelName = validationResult.data.hotelName !== undefined ? validationResult.data.hotelName : listing.hotelName;
+        const hotelBookingRef = validationResult.data.hotelBookingRef !== undefined ? validationResult.data.hotelBookingRef : listing.hotelBookingRef;
+        const checkInDate = validationResult.data.checkInDate !== undefined ? validationResult.data.checkInDate : listing.checkInDate;
+        const checkOutDate = validationResult.data.checkOutDate !== undefined ? validationResult.data.checkOutDate : listing.checkOutDate;
+        const hotelBookingProofUrl = validationResult.data.hotelBookingProofUrl !== undefined ? validationResult.data.hotelBookingProofUrl : listing.hotelBookingProofUrl;
+
+        if (!hotelName || !hotelBookingRef || !checkInDate || !checkOutDate || !hotelBookingProofUrl) {
+          return NextResponse.json({ error: 'All hotel room sharing details and booking proof are required.' }, { status: 400 });
+        }
+      } else {
+        const checkInDate = validationResult.data.checkInDate !== undefined ? validationResult.data.checkInDate : listing.checkInDate;
+        const checkOutDate = validationResult.data.checkOutDate !== undefined ? validationResult.data.checkOutDate : listing.checkOutDate;
+        if (!checkInDate || !checkOutDate) {
+          return NextResponse.json({ error: 'Check-in and check-out dates are required for hotel sharing queries.' }, { status: 400 });
+        }
+      }
+    }
+    updateData.requireVerification = requireVerification;
 
     const updatedListing = await prisma.listing.update({
       where: { id },

@@ -145,8 +145,8 @@ export default function ListingFilters() {
     if (city) params.set('city', city);
     if (sortBy) params.set('sortBy', sortBy);
 
-    if (category === 'ROOMMATE' || category === 'SHARE_STAY') {
-      if (roommateType) params.set('roommateType', roommateType);
+    if (category === 'ROOMMATE' || category === 'SHARE_STAY' || category === 'HOTEL') {
+      if (roommateType && category === 'ROOMMATE') params.set('roommateType', roommateType);
       if (roommateGender) params.set('roommateGender', roommateGender);
     }
 
@@ -352,10 +352,12 @@ export default function ListingFilters() {
           value={category}
           onChange={(e) => {
             setCategory(e.target.value);
-            // Reset roommate specific filters if category switches off roommate
-            if (e.target.value !== 'ROOMMATE') {
+            // Reset roommate specific filters if category switches off roommate/hotel/share_stay
+            if (e.target.value !== 'ROOMMATE' && e.target.value !== 'HOTEL' && e.target.value !== 'SHARE_STAY') {
               setRoommateType('');
               setRoommateGender('');
+            } else if (e.target.value !== 'ROOMMATE') {
+              setRoommateType('');
             }
           }}
           className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white text-sm px-4 py-2.5 rounded-xl outline-hidden transition"
@@ -370,25 +372,27 @@ export default function ListingFilters() {
       </div>
 
       {/* Roommate-specific Filters (Conditional) */}
-      {category === 'ROOMMATE' && (
+      {(category === 'ROOMMATE' || category === 'HOTEL') && (
         <div className="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl space-y-4">
           <div className="flex items-center gap-1.5 text-indigo-600 text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Roommate Criteria</span>
+            <span>{category === 'HOTEL' ? 'Co-stay Criteria' : 'Roommate Criteria'}</span>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Type</label>
-            <select
-              value={roommateType}
-              onChange={(e) => setRoommateType(e.target.value)}
-              className="w-full bg-white border border-slate-200 text-xs px-3 py-2 rounded-lg outline-hidden transition font-medium"
-            >
-              <option value="">All Roommate Types</option>
-              <option value="HAVE_ROOM">Has room (roommate wanted)</option>
-              <option value="NEED_ROOM">Needs room (looking for flat)</option>
-            </select>
-          </div>
+          {category === 'ROOMMATE' && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Type</label>
+              <select
+                value={roommateType}
+                onChange={(e) => setRoommateType(e.target.value)}
+                className="w-full bg-white border border-slate-200 text-xs px-3 py-2 rounded-lg outline-hidden transition font-medium"
+              >
+                <option value="">All Roommate Types</option>
+                <option value="HAVE_ROOM">Has room (roommate wanted)</option>
+                <option value="NEED_ROOM">Needs room (looking for flat)</option>
+              </select>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Gender Preference</label>

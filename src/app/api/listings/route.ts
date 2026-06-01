@@ -211,12 +211,26 @@ export async function POST(req: NextRequest) {
       console.error('Auto fraud check failed:', err);
     }
 
-    // Validate hotel room sharing and force verification
+    // Validate hotel room sharing and force verification (if already booked)
     let requireVerification = validationResult.data.requireVerification || false;
+    let isAlreadyBooked = true;
+    try {
+      const facilitiesData = body.facilities ? JSON.parse(body.facilities) : {};
+      if (facilitiesData.isAlreadyBooked === false) {
+        isAlreadyBooked = false;
+      }
+    } catch {}
+
     if (validationResult.data.category === ListingCategory.HOTEL && validationResult.data.isSharedHotelRoom) {
-      requireVerification = true;
-      if (!validationResult.data.hotelName || !validationResult.data.hotelBookingRef || !validationResult.data.checkInDate || !validationResult.data.checkOutDate || !validationResult.data.hotelBookingProofUrl) {
-        return NextResponse.json({ error: 'All hotel room sharing details and booking proof are required.' }, { status: 400 });
+      if (isAlreadyBooked) {
+        requireVerification = true;
+        if (!validationResult.data.hotelName || !validationResult.data.hotelBookingRef || !validationResult.data.checkInDate || !validationResult.data.checkOutDate || !validationResult.data.hotelBookingProofUrl) {
+          return NextResponse.json({ error: 'All hotel room sharing details and booking proof are required.' }, { status: 400 });
+        }
+      } else {
+        if (!validationResult.data.checkInDate || !validationResult.data.checkOutDate) {
+          return NextResponse.json({ error: 'Check-in and check-out dates are required for hotel sharing queries.' }, { status: 400 });
+        }
       }
     }
 
