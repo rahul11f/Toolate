@@ -303,6 +303,7 @@ export default function ProfileSettings() {
                 src={avatarUrl}
                 alt="Avatar"
                 className="w-24 h-24 rounded-full object-cover border-2 border-indigo-100 shadow-md"
+                referrerPolicy="no-referrer"
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-500 font-extrabold text-3xl shadow-md">

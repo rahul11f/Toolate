@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { Menu, X, PlusCircle, Building, LogOut, LayoutDashboard, Settings, User, Bell } from 'lucide-react';
 import InstallAppButton from './InstallAppButton';
+import UserAvatar from './UserAvatar';
 import toast from 'react-hot-toast';
 
 export default function Navbar() {
@@ -223,29 +224,12 @@ export default function Navbar() {
                     type="button"
                     className="flex items-center space-x-2.5 p-1 rounded-xl hover:bg-slate-50 transition cursor-pointer select-none border border-transparent hover:border-slate-100"
                   >
-                    {session.user.image ? (
-                      <div className="relative w-8 h-8 shrink-0">
-                        <img
-                          src={session.user.image}
-                          alt="Avatar"
-                          className="w-full h-full rounded-full object-cover border border-slate-200 shadow-xs"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
-                            if (fallback) {
-                              (fallback as HTMLElement).style.display = 'flex';
-                            }
-                          }}
-                        />
-                        <div className="avatar-fallback hidden w-full h-full rounded-full bg-gradient-to-tr from-indigo-50 to-violet-500 text-white items-center justify-center font-extrabold text-xs shadow-xs">
-                          {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-gradient-to-tr from-indigo-500 to-violet-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs shadow-xs shrink-0">
-                        {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
-                      </div>
-                    )}
+                    <UserAvatar
+                      image={session.user.image}
+                      name={session.user.name || 'User'}
+                      sizeClassName="w-8 h-8"
+                      fallbackClassName="bg-gradient-to-tr from-indigo-500 to-violet-500 text-white font-extrabold text-xs shadow-xs"
+                    />
                     <div className="flex flex-col items-start text-left max-w-[100px] hidden lg:flex">
                       <span className="text-xs font-bold text-slate-700 truncate w-full">
                         {session.user.name || 'User'}
@@ -368,29 +352,12 @@ export default function Navbar() {
           {session?.user ? (
             <div className="pt-4 border-t border-slate-100 space-y-2">
               <div className="px-3 py-2 flex items-center space-x-2">
-                 {session.user.image ? (
-                  <div className="relative w-8 h-8 shrink-0">
-                    <img
-                      src={session.user.image}
-                      alt="Avatar"
-                      className="w-full h-full rounded-full object-cover border border-slate-200"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
-                        if (fallback) {
-                          (fallback as HTMLElement).style.display = 'flex';
-                        }
-                      }}
-                    />
-                    <div className="avatar-fallback hidden w-full h-full rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 text-white items-center justify-center font-extrabold text-xs shadow-xs">
-                      {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-indigo-100 text-indigo-600 p-1.5 rounded-full shrink-0">
-                    <User className="w-4 h-4" />
-                  </div>
-                )}
+                <UserAvatar
+                  image={session.user.image}
+                  name={session.user.name || 'User'}
+                  sizeClassName="w-8 h-8"
+                  fallbackClassName="bg-gradient-to-tr from-indigo-500 to-violet-500 text-white font-extrabold text-xs shadow-xs"
+                />
                 <div>
                   <div className="text-sm font-semibold text-slate-800">{session.user.name}</div>
                   <div className="text-xs text-slate-400 capitalize">{(session.user as any).role?.toLowerCase()}</div>

@@ -32,6 +32,7 @@ export default function UserAvatar({
         alt={name}
         className={`${sizeClassName} rounded-full object-cover border border-slate-200 shadow-xs shrink-0 ${className}`}
         onError={() => setHasError(true)}
+        referrerPolicy="no-referrer"
       />
     );
   }
