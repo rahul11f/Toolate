@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
+import Script from 'next/script';
 import { calculateCompatibility } from '@/lib/roommateMatcher';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -444,9 +445,10 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                   )}
                 </div>
               </div>
-
-              {/* Client Component Actions Hydration script */}
-              <script
+                  {/* Client Component Actions Hydration script */}
+              <Script
+                id="hotel-split-script"
+                strategy="afterInteractive"
                 dangerouslySetInnerHTML={{
                   __html: `
                     (function() {
@@ -463,8 +465,8 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
                             return res.json();
                           }).then(function(data) {
                             if (data.success) {
-                              alert("Co-stay split request submitted! Reloading page...");
-                              window.location.reload();
+                               alert("Co-stay split request submitted! Reloading page...");
+                               window.location.reload();
                             } else {
                               alert(data.error || "Failed to submit request.");
                               btn.disabled = false;
@@ -676,7 +678,9 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
               </div>
 
               {/* Client Component Actions Hydration script */}
-              <script
+              <Script
+                id="share-stay-split-script"
+                strategy="afterInteractive"
                 dangerouslySetInnerHTML={{
                   __html: `
                     (function() {
