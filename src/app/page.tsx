@@ -326,12 +326,26 @@ export default async function HomePage() {
                       href={`/listings/${hotel.id}`}
                       className="flex-shrink-0 w-72 snap-start md:w-auto group bg-white rounded-2xl overflow-hidden border border-slate-100 hover:border-indigo-150 hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full animate-fade-in"
                     >
-                      <div className="p-6 space-y-4">
+                      <div className="relative h-40 bg-slate-100 overflow-hidden">
+                        {hotel.images && hotel.images.length > 0 ? (
+                          <img
+                            src={hotel.images[0]}
+                            alt={hotel.hotelName || hotel.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-350 bg-slate-50">
+                            <Hotel className="w-10 h-10 text-indigo-450 stroke-[1.5]" />
+                          </div>
+                        )}
+                        <span className="absolute top-3 left-3 bg-indigo-650 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider flex items-center gap-1">
+                          <Hotel className="w-3 h-3" /> Hotel Splitting
+                        </span>
+                      </div>
+                      
+                      <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
                         {/* Hotel Name & Header */}
                         <div className="space-y-1.5">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-650 bg-indigo-50/70 px-2 py-0.5 rounded uppercase tracking-wider">
-                            <Hotel className="w-3 h-3" /> Hotel Splitting
-                          </span>
                           <h3 className="font-bold text-slate-800 text-lg line-clamp-1 group-hover:text-indigo-600 transition">
                             {hotel.hotelName || hotel.title}
                           </h3>

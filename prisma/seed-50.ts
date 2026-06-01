@@ -36,6 +36,14 @@ async function main() {
   });
 
   if (user) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        documentVerified: true,
+        documentStatus: 'VERIFIED',
+        legalName: user.name || 'Rahul Sharma'
+      }
+    });
     const deleted = await prisma.listing.deleteMany({
       where: { userId: user.id }
     });
@@ -50,6 +58,9 @@ async function main() {
         passwordHash: '$2b$10$W1X1vHjZ84.mX7mF9Z4z9e5Nf2b0L4Vz2qS3m9F0Q6k3qK1z1z1z1', // mock password
         role: 'USER',
         emailVerified: new Date(),
+        documentVerified: true,
+        documentStatus: 'VERIFIED',
+        legalName: 'Rahul Sharma',
       }
     });
     console.log('Created mock user for seeding:', user.email);
@@ -102,7 +113,7 @@ async function main() {
     const imageIndex2 = (i + 1) % unsplashImages.length;
     const imagesList = [unsplashImages[imageIndex1], unsplashImages[imageIndex2]];
 
-    const isHotelShare = category === ListingCategory.HOTEL && (i % 2 === 0);
+    const isHotelShare = category === ListingCategory.HOTEL;
 
     await prisma.listing.create({
       data: {

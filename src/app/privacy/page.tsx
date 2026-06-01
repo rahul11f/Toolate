@@ -5,7 +5,7 @@ export default function PrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
       {/* Back button */}
-      <div>
+      <div className="text-center">
         <Link
           href="/"
           className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-indigo-650 transition gap-1"
@@ -16,8 +16,8 @@ export default function PrivacyPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center space-x-3 border-b border-slate-100 pb-6">
-        <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600">
+      <div className="flex flex-col items-center justify-center text-center border-b border-slate-100 pb-6">
+        <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600 mb-3">
           <Shield className="w-8 h-8 stroke-[2.5]" />
         </div>
         <div>
