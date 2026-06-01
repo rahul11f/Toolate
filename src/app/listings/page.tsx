@@ -526,6 +526,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                             <img
                               src={listing.images[0]}
                               alt={listing.title}
+                              crossOrigin="anonymous"
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
                             />
                           ) : (
@@ -649,6 +650,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         <img
                           src={listing.images[0]}
                           alt={listing.title}
+                          crossOrigin="anonymous"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (

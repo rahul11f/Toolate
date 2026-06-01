@@ -191,6 +191,7 @@ export default function ComparePage() {
                           <img
                             src={listing.images[0]}
                             alt={listing.title}
+                            crossOrigin="anonymous"
                             className="w-full h-full object-cover"
                           />
                         ) : (

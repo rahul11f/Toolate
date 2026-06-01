@@ -277,6 +277,7 @@ export default async function HomePage() {
                       <img
                         src={listing.images[0]}
                         alt={listing.title}
+                        crossOrigin="anonymous"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
                       />
                     ) : (
@@ -417,6 +418,7 @@ export default async function HomePage() {
                           <img
                             src={hotel.images[0]}
                             alt={hotel.hotelName || hotel.title}
+                            crossOrigin="anonymous"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
