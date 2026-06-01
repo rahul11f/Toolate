@@ -24,7 +24,6 @@ export default function SignupPage() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
-  const [fallbackOtp, setFallbackOtp] = useState<string | null>(null);
 
   const {
     register,
@@ -55,13 +54,7 @@ export default function SignupPage() {
       if (!res.ok) {
         toast.error(result.error || 'Failed to send OTP.');
       } else {
-        if (result.otp) {
-          setFallbackOtp(result.otp);
-          toast.success('Sandbox / testing mode: code generated.');
-        } else {
-          setFallbackOtp(null);
-          toast.success('Verification code sent to your email.');
-        }
+        toast.success('Verification code sent to your email.');
         setStep('otp');
       }
     } catch (err) {
@@ -249,11 +242,6 @@ export default function SignupPage() {
                   {otpSending ? 'Resending...' : 'Resend'}
                 </button>
               </div>
-              {fallbackOtp && (
-                <div className="mt-3 bg-amber-50 border border-amber-200 text-amber-800 p-3.5 rounded-xl text-xs font-semibold leading-relaxed">
-                  ⚠️ <strong>Sandbox / testing mode:</strong> Verification email could not be sent (free tier restrictions). For testing, please use this OTP code: <span className="font-mono text-sm bg-amber-100 px-2 py-0.5 rounded-md select-all text-amber-950 font-bold">{fallbackOtp}</span>
-                </div>
-              )}
             </div>
 
             <div className="flex gap-2">

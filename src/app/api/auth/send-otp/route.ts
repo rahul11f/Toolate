@@ -41,7 +41,6 @@ export async function POST(req: Request) {
     await redis.set(otpKey, otp, { ex: 300 });
 
     // 5. Send email via Resend
-    let emailSent = false;
     if (process.env.RESEND_API_KEY) {
       try {
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
@@ -62,26 +61,24 @@ export async function POST(req: Request) {
         });
         if (resendError) {
           console.error('Failed to send email via Resend:', resendError);
-        } else {
-          emailSent = true;
+          return NextResponse.json(
+            { error: resendError.message || 'Failed to send verification email.' },
+            { status: 400 }
+          );
         }
       } catch (emailError: any) {
         console.error('Failed to send email via Resend:', emailError);
+        return NextResponse.json(
+          { error: emailError.message || 'Failed to send verification email.' },
+          { status: 500 }
+        );
       }
     } else {
-      // Log to console if Resend key is missing (for local testing/fallback)
-      console.log('--- DEVELOPMENT OTP ---');
-      console.log(`Email: ${normalizedEmail}`);
-      console.log(`OTP Code: ${otp}`);
-      console.log('----------------------');
-    }
-
-    if (!emailSent) {
-      return NextResponse.json({
-        success: true,
-        message: 'Sandbox / Local mode: Verification code generated.',
-        otp: otp,
-      });
+      console.error('Resend API key is missing.');
+      return NextResponse.json(
+        { error: 'Email sending configuration (RESEND_API_KEY) is missing.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, message: 'OTP sent successfully.' });
