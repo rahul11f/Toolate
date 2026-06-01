@@ -10,6 +10,7 @@ import InstallAppPopup from '@/components/InstallAppPopup';
 import FloatingContactButton from '@/components/FloatingContactButton';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import prisma from '@/lib/prisma';
+import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -102,7 +103,9 @@ export default async function RootLayout({
           </footer>
           <InstallAppPopup />
           <FloatingContactButton />
-          <MobileBottomNav />
+          <Suspense fallback={null}>
+            <MobileBottomNav />
+          </Suspense>
         </Providers>
       </body>
     </html>
