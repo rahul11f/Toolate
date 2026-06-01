@@ -387,17 +387,31 @@ export default async function HomePage() {
                       {/* Lister Verification & Action */}
                       <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between gap-3 text-xs">
                         <div className="flex items-center gap-2 max-w-[60%]">
-                          {hotel.user?.image ? (
-                            <img
-                              src={hotel.user.image}
-                              alt={ownerName}
-                              className="w-6 h-6 rounded-full object-cover border border-indigo-100"
-                            />
-                          ) : (
-                            <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-[10px] shrink-0">
-                              {ownerName.charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                          <div className="relative w-6 h-6 shrink-0">
+                            {hotel.user?.image ? (
+                              <>
+                                <img
+                                  src={hotel.user.image}
+                                  alt={ownerName}
+                                  className="w-full h-full rounded-full object-cover border border-indigo-100"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback');
+                                    if (fallback) {
+                                      (fallback as HTMLElement).style.display = 'flex';
+                                    }
+                                  }}
+                                />
+                                <div className="avatar-fallback hidden w-full h-full rounded-full bg-indigo-100 text-indigo-600 items-center justify-center font-bold text-[10px]">
+                                  {ownerName.charAt(0).toUpperCase()}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="w-full h-full rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-[10px]">
+                                {ownerName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
                           <div className="truncate">
                             <span className="font-bold text-slate-700 block truncate text-left">{ownerName}</span>
                             {isVerified ? (
