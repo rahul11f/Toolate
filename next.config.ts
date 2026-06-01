@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'cdn-icons-png.flaticon.com',
       },
       {
@@ -55,8 +59,8 @@ const nextConfig: NextConfig = {
               "default-src 'self';",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/;",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;",
-              "img-src 'self' data: blob: https://*.supabase.co https://cdn-icons-png.flaticon.com https://images.unsplash.com https://*.tile.openstreetmap.org https://www.gstatic.com/recaptcha/;",
-              "connect-src 'self' https://router.project-osrm.org https://pagead2.googlesyndication.com https://nominatim.openstreetmap.org;",
+              "img-src 'self' data: blob: https://*.supabase.co https://res.cloudinary.com https://cdn-icons-png.flaticon.com https://images.unsplash.com https://*.tile.openstreetmap.org https://www.gstatic.com/recaptcha/;",
+              "connect-src 'self' https://router.project-osrm.org https://pagead2.googlesyndication.com https://nominatim.openstreetmap.org https://api.cloudinary.com;",
               "frame-src 'self' https://googleads.g.doubleclick.net https://www.google.com/recaptcha/;",
               "font-src 'self' https://fonts.gstatic.com data:;",
               "object-src 'none';",

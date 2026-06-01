@@ -12,7 +12,7 @@ const createListingSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   category: z.nativeEnum(ListingCategory),
-  price: z.number().positive('Price must be a positive number.'),
+  price: z.number().nonnegative('Price must be 0 or positive.'),
   openingHours: z.string().min(1, 'Opening hours are required.'),
   closingHours: z.string().min(1, 'Closing hours are required.'),
   landlordTerms: z.string().min(5, 'Landlord terms must be at least 5 characters.'),
@@ -55,9 +55,13 @@ export async function GET(req: NextRequest) {
     const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '9'))); // default 9 items
     const skip = (page - 1) * limit;
 
-    // Build Prisma query filter
+    // Build Prisma query filter — exclude expired listings in real-time
     const where: any = {
       status: ListingStatus.APPROVED, // only approved items are public
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gt: new Date() } },
+      ],
     };
 
     if (category && Object.values(ListingCategory).includes(category)) {

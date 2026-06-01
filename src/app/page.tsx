@@ -11,7 +11,10 @@ export default async function HomePage() {
   let latestListings: any[] = [];
   try {
     const dbListings = await prisma.listing.findMany({
-      where: { status: ListingStatus.APPROVED },
+      where: {
+        status: ListingStatus.APPROVED,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
       orderBy: { createdAt: 'desc' },
       take: 3,
     });
@@ -31,7 +34,8 @@ export default async function HomePage() {
         status: ListingStatus.APPROVED,
         category: ListingCategory.HOTEL,
         isSharedHotelRoom: true,
-        hotelSplitStatus: 'AVAILABLE'
+        hotelSplitStatus: 'AVAILABLE',
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       include: {
         user: {
@@ -92,6 +96,7 @@ export default async function HomePage() {
     { name: 'Hotel', key: ListingCategory.HOTEL, count: 'Rooms & suites', icon: Hotel, bg: 'bg-indigo-50 text-indigo-650' },
     { name: 'Dharamshala', key: ListingCategory.DHARAMSHALA, count: 'Pilgrim lodgings', icon: Landmark, bg: 'bg-amber-50 text-amber-600' },
     { name: 'Hourly Room', key: ListingCategory.HOURLY_ROOM, count: 'Flexible micro-stays', icon: Clock, bg: 'bg-rose-50 text-rose-600' },
+    { name: 'Homestay', key: ListingCategory.HOUSE_GUEST, count: 'Guest stays & hosting', icon: Calendar, bg: 'bg-lime-50 text-lime-600' },
   ];
 
   const currentMonth = new Date().getMonth();
