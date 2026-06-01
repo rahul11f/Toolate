@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { UserMinus, User, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -190,7 +190,7 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-650">
             {users.map((user) => (
-              <>
+              <Fragment key={user.id}>
                 <tr key={user.id} className="hover:bg-slate-50/50 transition">
                   <td className="px-6 py-4 flex items-center space-x-3">
                     <button
@@ -324,7 +324,7 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
