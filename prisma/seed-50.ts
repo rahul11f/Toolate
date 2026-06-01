@@ -35,6 +35,13 @@ async function main() {
     where: { role: 'USER' }
   });
 
+  if (user) {
+    const deleted = await prisma.listing.deleteMany({
+      where: { userId: user.id }
+    });
+    console.log(`Cleaned up ${deleted.count} existing listings.`);
+  }
+
   if (!user) {
     user = await prisma.user.create({
       data: {
@@ -95,6 +102,8 @@ async function main() {
     const imageIndex2 = (i + 1) % unsplashImages.length;
     const imagesList = [unsplashImages[imageIndex1], unsplashImages[imageIndex2]];
 
+    const isHotelShare = category === ListingCategory.HOTEL && (i % 2 === 0);
+
     await prisma.listing.create({
       data: {
         title,
@@ -119,6 +128,14 @@ async function main() {
         roommateType: category === ListingCategory.ROOMMATE ? (i % 2 === 0 ? 'HAVE_ROOM' : 'NEED_ROOM') : null,
         roommateGender: (category === ListingCategory.ROOMMATE || category === ListingCategory.SHARE_STAY) ? (i % 3 === 0 ? 'MALE' : i % 3 === 1 ? 'FEMALE' : 'ANY') : null,
         userId: user.id,
+        isSharedHotelRoom: isHotelShare,
+        hotelSplitStatus: isHotelShare ? 'AVAILABLE' : 'AVAILABLE',
+        hotelName: isHotelShare ? `${cityData.name} Grand Plaza` : null,
+        hotelBookingRef: isHotelShare ? `REF-HOTEL-${10000 + i}` : null,
+        checkInDate: isHotelShare ? new Date(Date.now() + 5 * 24 * 60 * 60 * 1000) : null,
+        checkOutDate: isHotelShare ? new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) : null,
+        hotelBookingProofUrl: isHotelShare ? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop&q=80' : null,
+        requireVerification: isHotelShare ? true : false,
       }
     });
 

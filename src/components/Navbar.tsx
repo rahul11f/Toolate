@@ -18,6 +18,10 @@ export default function Navbar() {
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  // Profile dropdown states
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+
   const isActive = (path: string) => pathname === path;
 
   const handleLogout = async () => {
@@ -45,11 +49,14 @@ export default function Navbar() {
     }
   }, [status]);
 
-  // Click outside listener for notifications dropdown
+  // Click outside listener for dropdowns
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotifDropdown(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -202,83 +209,112 @@ export default function Navbar() {
                 </div>
 
                 <Link
-                  href="/dashboard"
-                  className={`flex items-center space-x-1.5 text-sm font-medium transition ${
-                    isActive('/dashboard') ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'
-                  }`}
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  <span>Dashboard</span>
-                </Link>
-
-                <Link
-                  href="/dashboard?tab=profile"
-                  className="flex items-center space-x-1.5 text-sm font-medium text-slate-600 hover:text-indigo-600 transition"
-                >
-                  <User className="w-4 h-4" />
-                  <span>Profile Settings</span>
-                </Link>
-
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className={`flex items-center space-x-1.5 text-sm font-medium transition ${
-                      isActive('/admin') ? 'text-rose-600 font-semibold' : 'text-slate-600 hover:text-rose-600'
-                    }`}
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Admin</span>
-                  </Link>
-                )}
-
-                <Link
                   href="/listings/create"
-                  className="flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-sm font-semibold px-4 py-2 rounded-lg transition"
+                  className="flex items-center space-x-1.5 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-700 hover:to-violet-750 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md hover:shadow-indigo-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150 shrink-0"
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>Post Ad</span>
+                  <span>Post Listing</span>
                 </Link>
 
-                <div className="flex items-center space-x-3 pl-2 border-l border-slate-200">
-                  {session.user.image ? (
-                    <img
-                      src={session.user.image}
-                      alt="Avatar"
-                      className="w-8 h-8 rounded-full object-cover border border-slate-200"
-                    />
-                  ) : (
-                    <div className="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
-                      {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
+                {/* Profile Settings & User Avatar Premium Dropdown */}
+                <div className="relative flex items-center pl-2 border-l border-slate-200" ref={profileDropdownRef}>
+                  <button
+                    onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                    type="button"
+                    className="flex items-center space-x-2.5 p-1 rounded-xl hover:bg-slate-50 transition cursor-pointer select-none border border-transparent hover:border-slate-100"
+                  >
+                    {session.user.image ? (
+                      <img
+                        src={session.user.image}
+                        alt="Avatar"
+                        className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-xs"
+                      />
+                    ) : (
+                      <div className="bg-gradient-to-tr from-indigo-500 to-violet-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs shadow-xs shrink-0">
+                        {session.user.name ? session.user.name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                    )}
+                    <div className="flex flex-col items-start text-left max-w-[100px] hidden lg:flex">
+                      <span className="text-xs font-bold text-slate-700 truncate w-full">
+                        {session.user.name || 'User'}
+                      </span>
+                      <span className="text-[9px] text-slate-400 capitalize font-bold leading-none mt-0.5">
+                        {(session.user as any).role?.toLowerCase() || 'user'}
+                      </span>
+                    </div>
+                  </button>
+
+                  {showProfileDropdown && (
+                    <div className="absolute right-0 top-11 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 p-2 divide-y divide-slate-100">
+                      {/* User Header */}
+                      <div className="px-3 py-2.5">
+                        <div className="text-xs font-bold text-slate-800 truncate">{session.user.name || 'User'}</div>
+                        <div className="text-[10px] text-slate-450 font-medium truncate mt-0.5">{session.user.email}</div>
+                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider mt-2 border ${
+                          isAdmin ? 'bg-rose-50 text-rose-700 border-rose-100' : 'bg-slate-50 text-slate-600 border-slate-250'
+                        }`}>
+                          {(session.user as any).role}
+                        </span>
+                      </div>
+
+                      {/* Links */}
+                      <div className="py-1 space-y-0.5">
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setShowProfileDropdown(false)}
+                          className="flex items-center space-x-2 px-3 py-2 text-xs font-bold text-slate-650 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-slate-400" />
+                          <span>Dashboard</span>
+                        </Link>
+                        <Link
+                          href="/dashboard?tab=profile"
+                          onClick={() => setShowProfileDropdown(false)}
+                          className="flex items-center space-x-2 px-3 py-2 text-xs font-bold text-slate-655 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition"
+                        >
+                          <User className="w-4 h-4 text-slate-400" />
+                          <span>Profile Settings</span>
+                        </Link>
+                        {isAdmin && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setShowProfileDropdown(false)}
+                            className="flex items-center space-x-2 px-3 py-2 text-xs font-bold text-slate-650 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+                          >
+                            <Settings className="w-4 h-4 text-slate-400" />
+                            <span>Admin Console</span>
+                          </Link>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setShowProfileDropdown(false);
+                            handleLogout();
+                          }}
+                          className="w-full flex items-center space-x-2 px-3 py-2 text-xs font-bold text-slate-650 hover:text-rose-600 hover:bg-rose-50/50 rounded-xl transition cursor-pointer text-left"
+                        >
+                          <LogOut className="w-4 h-4 text-slate-400" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
                     </div>
                   )}
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs font-semibold text-slate-800 line-clamp-1 max-w-[120px]">
-                      {session.user.name || 'User'}
-                    </span>
-                    <span className="text-[10px] text-slate-400 capitalize">
-                      {(session.user as any).role?.toLowerCase() || 'user'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="p-2 text-slate-400 hover:text-rose-600 transition rounded-lg hover:bg-rose-50 cursor-pointer"
-                    title="Sign Out"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
             ) : (
               <div className="flex items-center space-x-3">
                 <Link
                   href="/login"
-                  className="text-slate-600 hover:text-indigo-600 text-sm font-medium px-3 py-2 transition"
+                  className="text-slate-600 hover:text-indigo-600 text-xs font-bold px-3 py-2 transition"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/signup"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition active:scale-95"
+                  className="bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-700 hover:to-violet-750 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md hover:shadow-indigo-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150"
                 >
                   Sign Up
                 </Link>

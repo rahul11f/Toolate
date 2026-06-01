@@ -47,6 +47,16 @@ export default async function AdminDashboardPage() {
           email: true,
           role: true,
           createdAt: true,
+          listings: {
+            select: {
+              id: true,
+              title: true,
+              category: true,
+              price: true,
+              status: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
           _count: {
             select: { listings: true },
           },
