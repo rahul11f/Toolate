@@ -8,7 +8,7 @@ import { authOptions } from '@/lib/auth';
 import ListingConnectTrigger from '@/components/ListingConnectTrigger';
 import SafeImage from '@/components/SafeImage';
 
-export const revalidate = 60; // Revalidate home page cache every minute
+export const revalidate = 60; // Revalidate home page cache every minute (cache invalidated to apply image CORS fixes)
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);

@@ -60,7 +60,6 @@ export default function UserAvatar({
         ref={imgRef}
         src={image}
         alt={name}
-        crossOrigin="anonymous"
         className={`${sizeClassName} rounded-full object-cover border border-slate-200 shadow-xs shrink-0 ${className}`}
         referrerPolicy="no-referrer"
       />

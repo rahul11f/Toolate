@@ -1,4 +1,9 @@
 export async function verifyRecaptcha(token: string): Promise<boolean> {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[reCAPTCHA] Bypassing verification in development mode.');
+    return true;
+  }
+
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
   
   if (!secretKey || secretKey === 'your_recaptcha_secret_key') {

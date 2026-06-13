@@ -73,7 +73,6 @@ export default function ImageCarousel({ images, title, category = 'RESIDENTIAL' 
           <img
             src={images[currentIndex]}
             alt={`${title} - Slide ${currentIndex + 1}`}
-            crossOrigin="anonymous"
             onLoad={() => setLoading(false)}
             onError={handleImageError}
             className={`w-full h-full object-contain transition-all duration-500 ${

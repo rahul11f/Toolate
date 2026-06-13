@@ -486,6 +486,37 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     return `/listings?${params.toString()}`;
   };
 
+  // Helper to construct list of page numbers to display with ellipses
+  const getVisiblePages = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      let start = Math.max(2, page - 1);
+      let end = Math.min(totalPages - 1, page + 1);
+      if (page <= 3) {
+        end = 4;
+      } else if (page >= totalPages - 2) {
+        start = totalPages - 3;
+      }
+      if (start > 2) {
+        pages.push('...');
+      }
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      if (end < totalPages - 1) {
+        pages.push('...');
+      }
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+  const visiblePages = getVisiblePages();
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Title */}
@@ -877,7 +908,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center space-x-2 pt-6">
+            <div className="flex flex-wrap justify-center items-center gap-3 pt-8 pb-16">
               {page > 1 ? (
                 <Link
                   href={getPaginationUrl(page - 1)}
@@ -893,23 +924,32 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                 </div>
               )}
 
-              <div className="flex items-center space-x-1 text-sm font-semibold">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                  const isCurrent = p === page;
+              <div className="flex flex-wrap justify-center items-center gap-1.5 text-sm font-semibold">
+                {visiblePages.map((p, idx) => {
+                  if (p === '...') {
+                    return (
+                      <span key={`ellipsis-${idx}`} className="px-3 py-2 text-slate-400 select-none">
+                        ...
+                      </span>
+                    );
+                  }
+
+                  const pageNum = p as number;
+                  const isCurrent = pageNum === page;
                   return isCurrent ? (
                     <span
-                      key={p}
-                      className="px-3.5 py-2 bg-indigo-600 text-white rounded-xl select-none"
+                      key={pageNum}
+                      className="px-3.5 py-2 bg-indigo-650 text-white rounded-xl select-none"
                     >
-                      {p}
+                      {pageNum}
                     </span>
                   ) : (
                     <Link
-                      key={p}
-                      href={getPaginationUrl(p)}
+                      key={pageNum}
+                      href={getPaginationUrl(pageNum)}
                       className="px-3.5 py-2 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl text-slate-650 transition"
                     >
-                      {p}
+                      {pageNum}
                     </Link>
                   );
                 })}

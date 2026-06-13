@@ -25,6 +25,8 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
 
+  const requireOtp = process.env.NEXT_PUBLIC_REQUIRE_OTP === 'true';
+
   const {
     register,
     handleSubmit,
@@ -39,7 +41,7 @@ export default function SignupPage() {
     },
   });
 
-  // 1. Send OTP verification email
+  // 1. Send OTP verification email (for OTP-enabled signups)
   const handleRequestOtp = async (data: SignupFields) => {
     setOtpSending(true);
     try {
@@ -54,13 +56,60 @@ export default function SignupPage() {
       if (!res.ok) {
         toast.error(result.error || 'Failed to send OTP.');
       } else {
-        toast.success('Verification code sent to your email.');
+        toast.success(result.message || 'Verification code sent to your email.');
+        if (result.devOtp) {
+          toast(`[Dev Mode] Auto-filling OTP: ${result.devOtp}`, {
+            icon: '🔧',
+            duration: 6000,
+          });
+          setOtp(result.devOtp);
+        }
         setStep('otp');
       }
     } catch (err) {
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setOtpSending(false);
+    }
+  };
+
+  // Direct Registration (for standard credentials flow)
+  const handleRegisterDirectly = async (data: SignupFields) => {
+    setLoading(true);
+    try {
+      const recaptchaToken = await getRecaptchaToken();
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          otp: '',
+          recaptchaToken,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result.error || 'Registration failed.');
+      } else {
+        toast.success('Account created successfully! Please sign in.');
+        router.push('/login');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred during registration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFirstStepSubmit = async (data: SignupFields) => {
+    if (requireOtp) {
+      await handleRequestOtp(data);
+    } else {
+      await handleRegisterDirectly(data);
     }
   };
 
@@ -90,7 +139,7 @@ export default function SignupPage() {
     });
   };
 
-  // 2. Final verification and submission
+  // 2. Final verification and submission (OTP flow)
   const handleFinalSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp || otp.length !== 6) {
@@ -147,13 +196,13 @@ export default function SignupPage() {
           <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Create Account</h2>
           <p className="mt-2 text-sm text-slate-400">
             {step === 'details'
-              ? 'Join Toolate to browse properties and post ads.'
+              ? (requireOtp ? 'Join Toolate to browse properties and post ads.' : 'Create an account to start listing and browsing properties.')
               : 'Enter the verification code sent to your email.'}
           </p>
         </div>
 
         {step === 'details' ? (
-          <form key="signup-details-form" onSubmit={handleSubmit(handleRequestOtp)} className="space-y-6">
+          <form key="signup-details-form" onSubmit={handleSubmit(handleFirstStepSubmit)} className="space-y-6">
             {/* Name */}
             <div className="space-y-1.5">
               <label className="text-xs uppercase font-bold text-slate-400 tracking-wider">Full Name</label>
@@ -207,10 +256,15 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              disabled={otpSending}
-              className="w-full flex items-center justify-center space-x-2 bg-indigo-650 hover:bg-indigo-755 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transition disabled:bg-slate-350 select-none cursor-pointer"
+              disabled={otpSending || loading}
+              className="w-full flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transition disabled:bg-slate-300 select-none cursor-pointer"
             >
-              <span>{otpSending ? 'Sending Code...' : 'Request Verification Code'}</span>
+              <span>
+                {requireOtp
+                  ? (otpSending ? 'Sending Code...' : 'Request Verification Code')
+                  : (loading ? 'Creating Account...' : 'Create Account')
+                }
+              </span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

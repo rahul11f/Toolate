@@ -108,7 +108,6 @@ export default function SafeImage({
       <img
         src={src}
         alt={alt}
-        crossOrigin="anonymous"
         onLoad={() => setLoading(false)}
         onError={() => {
           setHasError(true);

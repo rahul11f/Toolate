@@ -11,17 +11,20 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadSettings() {
       try {
-        const res = await fetch('/api/admin/settings');
+        const res = await fetch(`/api/admin/settings?t=${Date.now()}`);
         if (res.ok) {
           const data = await res.json();
           setSettings(data);
         }
       } catch (err) {
         console.error('Failed to load contact settings:', err);
+      } finally {
+        setLoading(false);
       }
     }
     loadSettings();
@@ -92,25 +95,37 @@ export default function ContactPage() {
             <div className="relative z-10 space-y-4 text-sm font-medium">
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-grow min-w-0">
                   <h4 className="text-slate-200 text-xs font-bold uppercase tracking-wider">Office Address</h4>
-                  <p className="text-slate-300 text-xs mt-0.5">{settings?.officeAddress || 'Prestige Tech Park, Outer Ring Rd, Bangalore, KA, India'}</p>
+                  {loading ? (
+                    <div className="h-3.5 w-full max-w-[220px] bg-indigo-500/20 animate-pulse rounded mt-1" />
+                  ) : (
+                    <p className="text-slate-300 text-xs mt-0.5 break-words leading-relaxed">{settings?.officeAddress || 'Prestige Tech Park, Outer Ring Rd, Bangalore, KA, India'}</p>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-grow min-w-0">
                   <h4 className="text-slate-200 text-xs font-bold uppercase tracking-wider">Email Us</h4>
-                  <p className="text-slate-300 text-xs mt-0.5 hover:text-white transition">{settings?.helpEmail || 'support@toolate.com'}</p>
+                  {loading ? (
+                    <div className="h-3.5 w-36 bg-indigo-500/20 animate-pulse rounded mt-1" />
+                  ) : (
+                    <p className="text-slate-300 text-xs mt-0.5 hover:text-white transition break-all">{settings?.helpEmail || 'support@toolate.com'}</p>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-grow min-w-0">
                   <h4 className="text-slate-200 text-xs font-bold uppercase tracking-wider">Call Support</h4>
-                  <p className="text-slate-300 text-xs mt-0.5">{settings?.supportPhone || '+91 80 4455 6677'}</p>
+                  {loading ? (
+                    <div className="h-3.5 w-32 bg-indigo-500/20 animate-pulse rounded mt-1" />
+                  ) : (
+                    <p className="text-slate-300 text-xs mt-0.5 break-all">{settings?.supportPhone || '+91 80 4455 6677'}</p>
+                  )}
                 </div>
               </div>
             </div>

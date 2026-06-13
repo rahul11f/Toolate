@@ -336,7 +336,7 @@ export default function DashboardPayments({ listings }: DashboardPaymentsProps) 
                 <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">UPI Screenshot Proof</label>
                 {screenshotUrl ? (
                   <div className="relative border border-slate-200 rounded-xl overflow-hidden h-32 flex items-center justify-center">
-                    <img src={screenshotUrl} alt="Receipt preview" crossOrigin="anonymous" className="object-contain h-full w-full" />
+                    <img src={screenshotUrl} alt="Receipt preview" className="object-contain h-full w-full" />
                     <button
                       type="button"
                       onClick={() => setScreenshotUrl('')}

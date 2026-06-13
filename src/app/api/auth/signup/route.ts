@@ -10,7 +10,7 @@ const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
-  otp: z.string().length(6, 'OTP must be 6 digits.'),
+  otp: z.string().length(6, 'OTP must be 6 digits.').optional().or(z.literal('')),
   recaptchaToken: z.string().min(1, 'reCAPTCHA token is required.'),
 });
 
@@ -28,10 +28,17 @@ export async function POST(req: Request) {
     const { name, email, password, otp, recaptchaToken } = validationResult.data;
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 2. Check rate limits
-    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    const rateLimitKey = `signup-limit:${ip}`;
-    const { success: isRateLimitOk } = await signupRateLimiter.limit(rateLimitKey);
+    // 2. Check rate limits (resilient to Redis errors)
+    let isRateLimitOk = true;
+    try {
+      const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+      const rateLimitKey = `signup-limit:${ip}`;
+      const limitRes = await signupRateLimiter.limit(rateLimitKey);
+      isRateLimitOk = limitRes.success;
+    } catch (redisErr) {
+      console.error('[RateLimit Error] Redis rate-limiting failed:', redisErr);
+    }
+    
     if (!isRateLimitOk) {
       return NextResponse.json(
         { error: 'Too many signup attempts. Please try again in an hour.' },
@@ -45,16 +52,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 });
     }
 
-    // 4. Verify OTP from Redis
-    const otpKey = `otp:${normalizedEmail}`;
-    const storedOtp = await redis.get(otpKey);
-    
-    if (!storedOtp) {
-      return NextResponse.json({ error: 'OTP code has expired or is invalid.' }, { status: 400 });
-    }
+    // 4. Verify OTP from Redis (only if required by configuration)
+    const requireOtp = process.env.NEXT_PUBLIC_REQUIRE_OTP === 'true';
+    if (requireOtp) {
+      if (!otp) {
+        return NextResponse.json({ error: 'Verification OTP is required.' }, { status: 400 });
+      }
 
-    if (String(storedOtp).trim() !== String(otp).trim()) {
-      return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 400 });
+      const otpKey = `otp:${normalizedEmail}`;
+      const storedOtp = await redis.get(otpKey);
+      
+      if (!storedOtp) {
+        return NextResponse.json({ error: 'OTP code has expired or is invalid.' }, { status: 400 });
+      }
+
+      if (String(storedOtp).trim() !== String(otp).trim()) {
+        return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 400 });
+      }
+
+      // Delete OTP key since it was successfully verified
+      try {
+        await redis.del(otpKey);
+      } catch (redisErr) {
+        console.error('[Redis Error] Failed to delete verified OTP:', redisErr);
+      }
     }
 
     // 5. Check if user already exists (just to double check concurrency)
@@ -64,9 +85,6 @@ export async function POST(req: Request) {
     if (existingUser) {
       return NextResponse.json({ error: 'Email is already registered.' }, { status: 400 });
     }
-
-    // 6. Delete OTP key since it was successfully verified
-    await redis.del(otpKey);
 
     // 7. Hash the user's password
     const passwordHash = await bcrypt.hash(password, 10);

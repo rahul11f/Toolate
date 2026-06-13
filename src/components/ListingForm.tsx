@@ -1813,7 +1813,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             {watchImages.map((url, idx) => (
               <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden bg-slate-150 border border-slate-200 shadow-inner">
-                <img src={url} alt={`Listing image ${idx + 1}`} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                <img src={url} alt={`Listing image ${idx + 1}`} className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => handleDeleteImage(idx)}

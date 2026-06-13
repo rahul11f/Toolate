@@ -29,11 +29,18 @@ export async function POST(req: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 1. Check rate limits
-    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    const rateLimitKey = `otp-limit:${ip}:${normalizedEmail}`;
-    const { success } = await otpRateLimiter.limit(rateLimitKey);
-    if (!success) {
+    // 1. Check rate limits (resilient to Redis errors)
+    let isRateLimitOk = true;
+    try {
+      const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+      const rateLimitKey = `otp-limit:${ip}:${normalizedEmail}`;
+      const limitRes = await otpRateLimiter.limit(rateLimitKey);
+      isRateLimitOk = limitRes.success;
+    } catch (redisErr) {
+      console.error('[RateLimit Error] Redis rate-limiting failed:', redisErr);
+    }
+    
+    if (!isRateLimitOk) {
       return NextResponse.json(
         { error: 'Too many OTP requests. Please try again in 5 minutes.' },
         { status: 429 }
@@ -52,8 +59,17 @@ export async function POST(req: Request) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 4. Store in Upstash Redis (valid for 5 minutes = 300 seconds)
-    const otpKey = `otp:${normalizedEmail}`;
-    await redis.set(otpKey, otp, { ex: 300 });
+    try {
+      const otpKey = `otp:${normalizedEmail}`;
+      await redis.set(otpKey, otp, { ex: 300 });
+    } catch (redisErr) {
+      console.error('[Redis Error] Failed to store OTP in Redis:', redisErr);
+      if (process.env.NODE_ENV !== 'development') {
+        return NextResponse.json({ error: 'Failed to generate verification code due to database issues.' }, { status: 500 });
+      }
+    }
+
+    const isDev = process.env.NODE_ENV === 'development';
 
     // 5. Send email via SMTP (Nodemailer/Gmail) or Resend
     if (smtpTransporter) {
@@ -73,6 +89,14 @@ export async function POST(req: Request) {
         });
       } catch (smtpError: any) {
         console.error('Failed to send email via SMTP:', smtpError);
+        if (isDev) {
+          console.warn(`[DEVELOPMENT] Bypassing SMTP failure. OTP: ${otp}`);
+          return NextResponse.json({
+            success: true,
+            message: `[Dev Mode] Verification code is ${otp} (SMTP failed: ${smtpError.message})`,
+            devOtp: otp,
+          });
+        }
         return NextResponse.json(
           { error: smtpError.message || 'Failed to send verification email via SMTP.' },
           { status: 500 }
@@ -98,6 +122,14 @@ export async function POST(req: Request) {
         });
         if (resendError) {
           console.error('Failed to send email via Resend:', resendError);
+          if (isDev) {
+            console.warn(`[DEVELOPMENT] Bypassing Resend failure. OTP: ${otp}`);
+            return NextResponse.json({
+              success: true,
+              message: `[Dev Mode] Verification code is ${otp} (Resend failed: ${resendError.message})`,
+              devOtp: otp,
+            });
+          }
           return NextResponse.json(
             { error: resendError.message || 'Failed to send verification email.' },
             { status: 400 }
@@ -105,6 +137,14 @@ export async function POST(req: Request) {
         }
       } catch (emailError: any) {
         console.error('Failed to send email via Resend:', emailError);
+        if (isDev) {
+          console.warn(`[DEVELOPMENT] Bypassing Resend error. OTP: ${otp}`);
+          return NextResponse.json({
+            success: true,
+            message: `[Dev Mode] Verification code is ${otp} (Resend error: ${emailError.message})`,
+            devOtp: otp,
+          });
+        }
         return NextResponse.json(
           { error: emailError.message || 'Failed to send verification email.' },
           { status: 500 }
@@ -112,6 +152,14 @@ export async function POST(req: Request) {
       }
     } else {
       console.error('No email sending configuration found.');
+      if (isDev) {
+        console.warn(`[DEVELOPMENT] Bypassing email send. No config. OTP: ${otp}`);
+        return NextResponse.json({
+          success: true,
+          message: `[Dev Mode] Verification code is ${otp} (No email configuration found)`,
+          devOtp: otp,
+        });
+      }
       return NextResponse.json(
         { error: 'Email sending configuration (SMTP or Resend) is missing.' },
         { status: 500 }
