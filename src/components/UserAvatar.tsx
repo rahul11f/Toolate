@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 
 interface UserAvatarProps {
   image?: string | null;
@@ -20,33 +21,11 @@ export default function UserAvatar({
   const [prevImage, setPrevImage] = useState(image);
   const [hasError, setHasError] = useState(false);
   const initial = name ? name.charAt(0).toUpperCase() : 'U';
-  const imgRef = useRef<HTMLImageElement>(null);
-
   // Reset error state if image URL changes during render (standard React 19 pattern)
   if (image !== prevImage) {
     setPrevImage(image);
     setHasError(false);
   }
-
-  // Hydration-safe image load error detection
-  useEffect(() => {
-    const img = imgRef.current;
-    if (img) {
-      // Check if image already failed to load before hydration completes
-      if (img.complete && (img.naturalWidth === 0 || img.naturalHeight === 0)) {
-        setTimeout(() => {
-          setHasError(true);
-        }, 0);
-      }
-
-      const handleError = () => setHasError(true);
-      img.addEventListener('error', handleError);
-
-      return () => {
-        img.removeEventListener('error', handleError);
-      };
-    }
-  }, [image]);
 
   const isValidImage = image &&
     typeof image === 'string' &&
@@ -56,13 +35,17 @@ export default function UserAvatar({
 
   if (isValidImage && !hasError) {
     return (
-      <img
-        ref={imgRef}
-        src={image}
-        alt={name}
-        className={`${sizeClassName} rounded-full object-cover border border-slate-200 shadow-xs shrink-0 ${className}`}
-        referrerPolicy="no-referrer"
-      />
+      <div className={`relative ${sizeClassName} rounded-full overflow-hidden border border-slate-205 shadow-xs shrink-0 ${className}`}>
+        <Image
+          src={image}
+          alt={name}
+          fill
+          sizes="48px"
+          onError={() => setHasError(true)}
+          className="object-cover"
+          referrerPolicy="no-referrer"
+        />
+      </div>
     );
   }
 
