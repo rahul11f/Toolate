@@ -3,22 +3,14 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { Role } from '@/lib/types';
+import { getCachedSettings, invalidateSettingsCache } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
 // GET settings (publicly accessible, but falls back to default if not seeded)
 export async function GET() {
   try {
-    let settings = await prisma.siteSettings.findUnique({
-      where: { id: 'default' },
-    });
-
-    if (!settings) {
-      settings = await prisma.siteSettings.create({
-        data: { id: 'default' },
-      });
-    }
-
+    const settings = await getCachedSettings();
     return NextResponse.json(settings);
   } catch (error: any) {
     console.error('Failed to get site settings:', error);
@@ -86,6 +78,9 @@ export async function PUT(req: NextRequest) {
         whatsappSupport: whatsappSupport || undefined,
       },
     });
+
+    // Invalidate site settings cache
+    await invalidateSettingsCache();
 
     // Log admin settings change
     await prisma.adminLog.create({

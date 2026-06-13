@@ -7,10 +7,16 @@ const resend = new Resend(process.env.RESEND_API_KEY || '');
 
 export async function GET(req: Request) {
   try {
-    // Basic authorization check: verify CRON_SECRET if set in env
+    // Authorization check: verify CRON_SECRET via query parameter or Authorization Bearer header
     const { searchParams } = new URL(req.url);
     const secret = searchParams.get('secret');
-    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+    const authHeader = req.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+
+    const isAuthorized = cronSecret && 
+      (secret === cronSecret || authHeader === `Bearer ${cronSecret}`);
+
+    if (process.env.NODE_ENV === 'production' && !isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

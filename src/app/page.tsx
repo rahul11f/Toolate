@@ -3,28 +3,13 @@ import prisma from '@/lib/prisma';
 import { ListingStatus, ListingCategory } from '@/lib/types';
 import { Building, MapPin, IndianRupee, ArrowRight, Home, Compass, Store, Sparkles, Briefcase, Laptop, Package, BedDouble as Bed, Users, Hotel, Landmark, Clock, Calendar, Plus, CheckCircle2, Handshake } from 'lucide-react';
 import HomeSearchForm from '@/components/HomeSearchForm';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getCachedSettings } from '@/lib/settings';
 import ListingConnectTrigger from '@/components/ListingConnectTrigger';
 import SafeImage from '@/components/SafeImage';
 
 export const revalidate = 60; // Revalidate home page cache every minute (cache invalidated to apply image CORS fixes)
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-  const isAuthenticated = !!session?.user;
-  let currentUserVerified = false;
-  if (session?.user) {
-    try {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: (session.user as any).id },
-        select: { documentVerified: true },
-      });
-      currentUserVerified = dbUser?.documentVerified || false;
-    } catch (error) {
-      console.error('Failed to fetch home page user verification status:', error);
-    }
-  }
 
   // Fetch latest 3 approved listings
   let latestListings: any[] = [];
@@ -115,14 +100,7 @@ export default async function HomePage() {
   };
 
   // Fetch admin SiteSettings
-  let settings = null;
-  try {
-    settings = await prisma.siteSettings.findUnique({
-      where: { id: 'default' },
-    });
-  } catch (error) {
-    console.error('Failed to fetch settings:', error);
-  }
+  const settings = await getCachedSettings();
 
   const heroTitle = settings?.heroTitle || 'Find Your Next Home, Flat or Shop Without Brokerage';
   const heroSubtitle = settings?.heroSubtitle || 'Search vetted listings for houses, flats, PGs, roommates and commercial spaces. Zero fees.';
@@ -341,8 +319,6 @@ export default async function HomePage() {
                         <ListingConnectTrigger
                           lister={listing.user}
                           listing={listing}
-                          isAuthenticated={isAuthenticated}
-                          currentUserVerified={currentUserVerified}
                         />
                       </div>
                     )}
@@ -514,8 +490,6 @@ export default async function HomePage() {
                         <ListingConnectTrigger
                           lister={hotel.user}
                           listing={hotel}
-                          isAuthenticated={isAuthenticated}
-                          currentUserVerified={currentUserVerified}
                         />
                       </div>
                     </div>

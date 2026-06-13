@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Phone, MessageSquare, Mail, X, ShieldCheck, AlertTriangle, Lock, LogIn, UserCheck } from 'lucide-react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import UserAvatar from './UserAvatar';
 
 interface Lister {
@@ -27,22 +28,50 @@ interface ListingData {
 interface ListingConnectTriggerProps {
   lister: Lister;
   listing: ListingData;
-  isAuthenticated: boolean;
-  currentUserVerified: boolean;
+  isAuthenticated?: boolean;
+  currentUserVerified?: boolean;
 }
 
 export default function ListingConnectTrigger({
   lister,
   listing,
-  isAuthenticated,
-  currentUserVerified
+  isAuthenticated: propIsAuthenticated,
+  currentUserVerified: propCurrentUserVerified
 }: ListingConnectTriggerProps) {
+  const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [currentUserVerified, setCurrentUserVerified] = useState(propCurrentUserVerified || false);
+
+  const isAuthenticated = propIsAuthenticated !== undefined ? propIsAuthenticated : status === 'authenticated';
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (propCurrentUserVerified !== undefined) {
+      setCurrentUserVerified(propCurrentUserVerified);
+      return;
+    }
+
+    if (isAuthenticated) {
+      if (session?.user && (session.user as any).documentVerified) {
+        setCurrentUserVerified(true);
+      } else {
+        fetch('/api/user/profile')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.user?.documentVerified) {
+              setCurrentUserVerified(true);
+            }
+          })
+          .catch((err) => console.warn('Failed to fetch user verification status:', err));
+      }
+    } else {
+      setCurrentUserVerified(false);
+    }
+  }, [isAuthenticated, session, propCurrentUserVerified]);
 
   const handleOpen = (e: React.MouseEvent) => {
     e.preventDefault();

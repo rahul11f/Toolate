@@ -9,7 +9,7 @@ import Link from 'next/link';
 import InstallAppPopup from '@/components/InstallAppPopup';
 import FloatingContactButton from '@/components/FloatingContactButton';
 import MobileBottomNav from '@/components/MobileBottomNav';
-import prisma from '@/lib/prisma';
+import { getCachedSettings } from '@/lib/settings';
 import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -36,9 +36,7 @@ export default async function RootLayout({
   let publisherId = process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID;
 
   try {
-    const settings = await prisma.siteSettings.findUnique({
-      where: { id: 'default' },
-    });
+    const settings = await getCachedSettings();
     if (settings) {
       if (settings.footerText) {
         footerText = settings.footerText;

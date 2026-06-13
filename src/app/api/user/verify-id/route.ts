@@ -69,9 +69,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Simulate verification check (2 seconds delay)
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
     // Update database status with metadata
     const updatedUser = await prisma.user.update({
       where: { id: userId },

@@ -57,6 +57,7 @@ export const authOptions: AuthOptions = {
           email: user.email,
           image: user.image,
           role: user.role,
+          documentVerified: user.documentVerified,
         };
       },
     }),
@@ -69,11 +70,13 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.documentVerified = (user as any).documentVerified || false;
       }
       if (trigger === 'update' && session) {
         if (session.role) token.role = session.role;
         if (session.name) token.name = session.name;
         if (session.image) token.picture = session.image;
+        if (session.documentVerified !== undefined) token.documentVerified = session.documentVerified;
       }
       return token;
     },
@@ -81,6 +84,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id as string;
         (session.user as any).role = token.role as string;
+        (session.user as any).documentVerified = token.documentVerified as boolean;
         if (token.name) session.user.name = token.name as string;
         if (token.picture) session.user.image = token.picture as string;
       }

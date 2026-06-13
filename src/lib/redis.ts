@@ -9,6 +9,7 @@ let redisClient: any;
 let signupLimiter: any;
 let listingLimiter: any;
 let otpLimiter: any;
+let feedbackLimiter: any;
 
 if (isMockRedis) {
   console.warn('Using in-memory Redis mock for local development.');
@@ -44,6 +45,7 @@ if (isMockRedis) {
   signupLimiter = createMockLimiter();
   listingLimiter = createMockLimiter();
   otpLimiter = createMockLimiter();
+  feedbackLimiter = createMockLimiter();
 } else {
   redisClient = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL || '',
@@ -70,9 +72,17 @@ if (isMockRedis) {
     analytics: true,
     prefix: '@upstash/ratelimit/otp',
   });
+
+  feedbackLimiter = new Ratelimit({
+    redis: redisClient,
+    limiter: Ratelimit.slidingWindow(5, '1 h'),
+    analytics: true,
+    prefix: '@upstash/ratelimit/feedback',
+  });
 }
 
 export const redis = redisClient;
 export const signupRateLimiter = signupLimiter;
 export const listingRateLimiter = listingLimiter;
 export const otpRateLimiter = otpLimiter;
+export const feedbackRateLimiter = feedbackLimiter;

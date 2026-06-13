@@ -57,8 +57,9 @@ export default function HomeSearchForm() {
     >
       {/* Query */}
       <div className="flex-1 flex flex-col items-start px-3 py-1">
-        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Search</label>
+        <label htmlFor="search-query" className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Search</label>
         <input
+          id="search-query"
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -69,8 +70,9 @@ export default function HomeSearchForm() {
 
       {/* Category */}
       <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1">
-        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Category</label>
+        <label htmlFor="search-category" className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Category</label>
         <select
+          id="search-category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="w-full bg-transparent border-none focus:outline-hidden focus:ring-0 text-sm py-1 text-slate-700 appearance-none font-medium cursor-pointer outline-hidden"
@@ -86,9 +88,10 @@ export default function HomeSearchForm() {
 
       {/* Location / City with Near Me Button */}
       <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1 relative">
-        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">City / Location</label>
+        <label htmlFor="search-city" className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">City / Location</label>
         <div className="flex items-center w-full">
           <input
+            id="search-city"
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
@@ -100,6 +103,7 @@ export default function HomeSearchForm() {
             onClick={handleNearbySearch}
             disabled={locating}
             title="Search Nearby (GPS)"
+            aria-label="Find properties near my current location"
             className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition shrink-0 cursor-pointer disabled:text-slate-400"
           >
             {locating ? (
