@@ -15,7 +15,14 @@ const envPath = path.join(__dirname, '.env');
 let schema = fs.readFileSync(schemaPath, 'utf8');
 
 // Read env
-let env = fs.readFileSync(envPath, 'utf8');
+let env = null;
+try {
+  if (fs.existsSync(envPath)) {
+    env = fs.readFileSync(envPath, 'utf8');
+  }
+} catch (e) {
+  console.log('  No .env file found or accessible (skipping env update).');
+}
 
 if (mode === 'sqlite') {
   console.log('Switching to SQLite local database...');
@@ -34,30 +41,32 @@ if (mode === 'sqlite') {
   }
 
   // Update .env
-  let envLines = env.split(/\r?\n/);
-  let hasPostgresBackup = false;
-  let hasDirectBackup = false;
-  let updatedLines = [];
+  if (env) {
+    let envLines = env.split(/\r?\n/);
+    let hasPostgresBackup = false;
+    let hasDirectBackup = false;
+    let updatedLines = [];
 
-  for (let line of envLines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('DATABASE_URL=') && !trimmed.includes('file:')) {
-      updatedLines.push(`# BACKUP_POSTGRES_${line}`);
-      updatedLines.push('DATABASE_URL="file:./dev.db"');
-    } else if (trimmed.startsWith('DIRECT_URL=')) {
-      updatedLines.push(`# BACKUP_POSTGRES_${line}`);
-    } else if (trimmed.startsWith('DATABASE_URL="file:')) {
-      // already has sqlite, skip duplicate
-      if (!updatedLines.some(l => l.startsWith('DATABASE_URL="file:'))) {
+    for (let line of envLines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('DATABASE_URL=') && !trimmed.includes('file:')) {
+        updatedLines.push(`# BACKUP_POSTGRES_${line}`);
+        updatedLines.push('DATABASE_URL="file:./dev.db"');
+      } else if (trimmed.startsWith('DIRECT_URL=')) {
+        updatedLines.push(`# BACKUP_POSTGRES_${line}`);
+      } else if (trimmed.startsWith('DATABASE_URL="file:')) {
+        // already has sqlite, skip duplicate
+        if (!updatedLines.some(l => l.startsWith('DATABASE_URL="file:'))) {
+          updatedLines.push(line);
+        }
+      } else {
         updatedLines.push(line);
       }
-    } else {
-      updatedLines.push(line);
     }
-  }
 
-  fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf8');
-  console.log('  Updated .env file database URLs to SQLite');
+    fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf8');
+    console.log('  Updated .env file database URLs to SQLite');
+  }
 
 } else {
   console.log('Switching to PostgreSQL Supabase database...');
@@ -77,26 +86,28 @@ if (mode === 'sqlite') {
   }
 
   // Update .env
-  let envLines = env.split(/\r?\n/);
-  let updatedLines = [];
-  let sqliteFound = false;
+  if (env) {
+    let envLines = env.split(/\r?\n/);
+    let updatedLines = [];
+    let sqliteFound = false;
 
-  for (let line of envLines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('DATABASE_URL="file:./dev.db"')) {
-      // remove sqlite URL
-      continue;
-    } else if (trimmed.startsWith('# BACKUP_POSTGRES_DATABASE_URL=')) {
-      updatedLines.push(trimmed.replace('# BACKUP_POSTGRES_', ''));
-    } else if (trimmed.startsWith('# BACKUP_POSTGRES_DIRECT_URL=')) {
-      updatedLines.push(trimmed.replace('# BACKUP_POSTGRES_', ''));
-    } else {
-      updatedLines.push(line);
+    for (let line of envLines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('DATABASE_URL="file:./dev.db"')) {
+        // remove sqlite URL
+        continue;
+      } else if (trimmed.startsWith('# BACKUP_POSTGRES_DATABASE_URL=')) {
+        updatedLines.push(trimmed.replace('# BACKUP_POSTGRES_', ''));
+      } else if (trimmed.startsWith('# BACKUP_POSTGRES_DIRECT_URL=')) {
+        updatedLines.push(trimmed.replace('# BACKUP_POSTGRES_', ''));
+      } else {
+        updatedLines.push(line);
+      }
     }
-  }
 
-  fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf8');
-  console.log('  Restored .env file database URLs to PostgreSQL');
+    fs.writeFileSync(envPath, updatedLines.join('\n'), 'utf8');
+    console.log('  Restored .env file database URLs to PostgreSQL');
+  }
 }
 
 // Regenerate Prisma Client

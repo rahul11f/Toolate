@@ -39,7 +39,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
       });
 
       return { success: true, method: 'smtp' };
-    } catch (smtpError: any) {
+    } catch (smtpError: unknown) {
       console.error('[Mail Utility] Failed to send email via SMTP:', smtpError);
       throw smtpError;
     }
@@ -64,7 +64,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
       }
 
       return { success: true, method: 'resend', data };
-    } catch (resendError: any) {
+    } catch (resendError: unknown) {
       console.error('[Mail Utility] Error sending email via Resend:', resendError);
       throw resendError;
     }

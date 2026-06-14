@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Home, Users, Hotel, Store, Briefcase, Building, Sparkles } from 'lucide-react';
-import Image from 'next/image';
 
 interface SafeImageProps {
   src?: string | null;
@@ -106,18 +105,16 @@ export default function SafeImage({
           </div>
         </div>
       )}
-      <Image
+      <img
         src={src}
         alt={alt}
-        fill
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         onLoad={() => setLoading(false)}
         onError={() => {
           setHasError(true);
           setLoading(false);
         }}
-        priority={priority}
-        className={`${className} object-cover transition-opacity duration-500 ${loading ? 'opacity-0' : 'opacity-100'}`}
+        loading={priority ? 'eager' : 'lazy'}
+        className={`${className} absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loading ? 'opacity-0' : 'opacity-100'}`}
       />
     </div>
   );
