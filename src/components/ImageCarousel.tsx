@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Home, Building } from 'lucide-react';
 
 interface ImageCarouselProps {
@@ -11,15 +11,17 @@ interface ImageCarouselProps {
 
 export default function ImageCarousel({ images, title, category = 'RESIDENTIAL' }: ImageCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [prevIndex, setPrevIndex] = useState(currentIndex);
   const [hasError, setHasError] = useState<Record<number, boolean>>({});
-  const [loading, setLoading] = useState(true);
+  const [loadedIndexes, setLoadedIndexes] = useState<Record<number, boolean>>({});
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  // Standard React pattern to reset state during rendering when index changes
-  if (currentIndex !== prevIndex) {
-    setPrevIndex(currentIndex);
-    setLoading(true);
-  }
+  // Detect cached images on mount or index change
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoadedIndexes((prev) => ({ ...prev, [currentIndex]: true }));
+    }
+  }, [currentIndex]);
 
   if (!images || images.length === 0) {
     return (
@@ -41,42 +43,52 @@ export default function ImageCarousel({ images, title, category = 'RESIDENTIAL' 
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
+  const handleImageLoad = () => {
+    setLoadedIndexes((prev) => ({ ...prev, [currentIndex]: true }));
+  };
+
   const handleImageError = () => {
     setHasError((prev) => ({ ...prev, [currentIndex]: true }));
-    setLoading(false);
   };
 
   const isCurrentIndexFailed = hasError[currentIndex];
+  const isCurrentLoaded = loadedIndexes[currentIndex];
 
   return (
     <div className="relative w-full h-64 md:h-96 rounded-2xl overflow-hidden shadow-md border border-slate-100 group bg-slate-900 select-none">
       {/* Slide Content */}
       <div className="relative w-full h-full flex items-center justify-center">
-        {loading && !isCurrentIndexFailed && (
-          <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-20">
-            <div className="flex flex-col items-center space-y-2">
-              <Building className="w-8 h-8 text-indigo-400 animate-bounce" />
-              <div className="w-16 h-1.5 bg-indigo-500/20 rounded-full overflow-hidden">
-                <div className="w-1/2 h-full bg-indigo-500 rounded-full animate-infinite-scroll" />
-              </div>
+        {/* Loading skeleton — sits behind image via z-index */}
+        <div
+          className={`absolute inset-0 z-0 bg-slate-900 flex items-center justify-center transition-opacity duration-500 ${
+            isCurrentLoaded || isCurrentIndexFailed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
+        >
+          <div className="flex flex-col items-center space-y-2">
+            <Building className="w-8 h-8 text-indigo-400 animate-bounce" />
+            <div className="w-16 h-1.5 bg-indigo-500/20 rounded-full overflow-hidden">
+              <div className="w-1/2 h-full bg-indigo-500 rounded-full animate-infinite-scroll" />
             </div>
           </div>
-        )}
+        </div>
 
         {isCurrentIndexFailed ? (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50/30 to-indigo-100/20 text-slate-450 p-6 text-center">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50/30 to-indigo-100/20 text-slate-450 p-6 text-center z-10">
             <Building className="w-12 h-12 text-indigo-400 mb-3" />
             <span className="text-xs font-black uppercase tracking-wider text-slate-300">Toolate</span>
             <span className="text-[10px] text-slate-400 mt-1">Failed to load this image</span>
           </div>
         ) : (
           <img
+            ref={imgRef}
             src={images[currentIndex]}
             alt={`${title} - Slide ${currentIndex + 1}`}
-            onLoad={() => setLoading(false)}
+            onLoad={handleImageLoad}
             onError={handleImageError}
-            className={`w-full h-full object-contain transition-all duration-500 ${
-              loading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+            loading="eager"
+            decoding="async"
+            className={`w-full h-full object-contain z-10 transition-opacity duration-500 ${
+              isCurrentLoaded ? 'opacity-100' : 'opacity-0'
             }`}
           />
         )}
@@ -124,3 +136,4 @@ export default function ImageCarousel({ images, title, category = 'RESIDENTIAL' 
     </div>
   );
 }
+

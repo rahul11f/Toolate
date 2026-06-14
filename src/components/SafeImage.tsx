@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Home, Users, Hotel, Store, Briefcase, Building, Sparkles } from 'lucide-react';
 
 interface SafeImageProps {
@@ -20,14 +20,32 @@ export default function SafeImage({
 }: SafeImageProps) {
   const [prevSrc, setPrevSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Standard React pattern to reset state during rendering when props change
   if (src !== prevSrc) {
     setPrevSrc(src);
     setHasError(false);
-    setLoading(true);
+    setLoaded(false);
   }
+
+  // Detect images that loaded from browser cache (onLoad may not fire for cached images)
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [src]);
+
+  const handleLoad = useCallback(() => {
+    setLoaded(true);
+  }, []);
+
+  const handleError = useCallback(() => {
+    setHasError(true);
+    setLoaded(false);
+  }, []);
 
   const normalizedCategory = category ? category.toUpperCase() : 'RESIDENTIAL';
 
@@ -96,25 +114,29 @@ export default function SafeImage({
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      {/* Loading Skeleton */}
-      {loading && (
-        <div className="absolute inset-0 bg-slate-100 animate-pulse flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-2">
-            <Building className="w-8 h-8 text-slate-300 animate-bounce" />
-            <div className="w-16 h-2 bg-slate-200 rounded-full" />
-          </div>
+      {/* Loading Skeleton — sits BEHIND the image via z-index, fades out when image loads */}
+      <div
+        className={`absolute inset-0 z-0 bg-slate-100 flex items-center justify-center transition-opacity duration-500 ${
+          loaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse'
+        }`}
+      >
+        <div className="flex flex-col items-center space-y-2">
+          <Building className="w-8 h-8 text-slate-300 animate-bounce" />
+          <div className="w-16 h-2 bg-slate-200 rounded-full" />
         </div>
-      )}
+      </div>
+      {/* Image always rendered with full opacity so browser eagerly fetches it */}
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
-        onLoad={() => setLoading(false)}
-        onError={() => {
-          setHasError(true);
-          setLoading(false);
-        }}
-        loading={priority ? 'eager' : 'lazy'}
-        className={`${className} absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${loading ? 'opacity-0' : 'opacity-100'}`}
+        onLoad={handleLoad}
+        onError={handleError}
+        loading="eager"
+        decoding="async"
+        className={`${className} absolute inset-0 z-10 w-full h-full object-cover transition-opacity duration-500 ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        }`}
       />
     </div>
   );
