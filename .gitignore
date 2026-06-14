@@ -46,3 +46,8 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# scratch/utility scripts
+scratch-*.ts
+scratch-*.js
+check-*.js
