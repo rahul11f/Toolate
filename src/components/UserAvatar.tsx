@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+
 
 interface UserAvatarProps {
   image?: string | null;
@@ -36,13 +36,11 @@ export default function UserAvatar({
   if (isValidImage && !hasError) {
     return (
       <div className={`relative ${sizeClassName} rounded-full overflow-hidden border border-slate-205 shadow-xs shrink-0 ${className}`}>
-        <Image
+        <img
           src={image}
           alt={name}
-          fill
-          sizes="48px"
           onError={() => setHasError(true)}
-          className="object-cover"
+          className="absolute inset-0 w-full h-full object-cover"
           referrerPolicy="no-referrer"
         />
       </div>
