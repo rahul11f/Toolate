@@ -21,8 +21,8 @@ export default async function AreaReviewsPage({ params }: AreaReviewsPageProps) 
   // Fetch reviews from database
   const reviews = await prisma.areaReview.findMany({
     where: {
-      city: { equals: decodedCity, mode: 'insensitive' },
-      area: { equals: decodedArea, mode: 'insensitive' },
+      city: decodedCity,
+      area: decodedArea,
     },
     include: {
       user: {

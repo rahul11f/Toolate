@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Resend } from 'resend';
 import { ListingStatus } from '@/lib/types';
-
-const resend = new Resend(process.env.RESEND_API_KEY || '');
+import { sendEmail } from '@/lib/mail';
 
 export async function GET(req: Request) {
   try {
@@ -37,36 +35,32 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: 'No expired listings found.' });
     }
 
-    // Set status to EXPIRED in database
+    // Hard-delete expired listings from database
     const updatedIds = expiredListings.map(l => l.id);
-    await prisma.listing.updateMany({
+    await prisma.listing.deleteMany({
       where: { id: { in: updatedIds } },
-      data: { status: 'EXPIRED' },
     });
 
-    // Send warning/expiry notification email to landlords via Resend
+    // Send warning/expiry notification email to landlords
     let emailsSent = 0;
-    if (process.env.RESEND_API_KEY) {
-      for (const listing of expiredListings) {
-        if (!listing.user.email) continue;
-        try {
-          await resend.emails.send({
-            from: 'Toolate <onboarding@resend.dev>',
-            to: listing.user.email,
-            subject: `Your Toolate Listing has Expired: "${listing.title}"`,
-            html: `
-              <h3>Hello ${listing.user.name || 'Landlord'},</h3>
-              <p>Your property advertisement <strong>"${listing.title}"</strong> has expired after its 60-day visibility window.</p>
-              <p>The listing is no longer public. If the room or house is still available, you can renew it at any time from your Toolate Dashboard to keep it active for another 60 days.</p>
-              <p>Go to your <a href="${process.env.NEXTAUTH_URL || 'https://toolate.vercel.app'}/dashboard">Dashboard</a> and click "Renew Listing".</p>
-              <br/>
-              <p>Best regards,<br/>The Toolate Team</p>
-            `,
-          });
-          emailsSent++;
-        } catch (emailErr) {
-          console.error(`Failed to send expiry email for listing ${listing.id}:`, emailErr);
-        }
+    for (const listing of expiredListings) {
+      if (!listing.user.email) continue;
+      try {
+        await sendEmail({
+          to: listing.user.email,
+          subject: `Your Toolate Listing has Expired: "${listing.title}"`,
+          html: `
+            <h3>Hello ${listing.user.name || 'Landlord'},</h3>
+            <p>Your property advertisement <strong>"${listing.title}"</strong> has expired and has been removed from Toolate.</p>
+            <p>If the property is still available, you can create a new listing at any time from your Toolate Dashboard.</p>
+            <p>Go to your <a href="${process.env.NEXTAUTH_URL || 'https://toolate.vercel.app'}/dashboard">Dashboard</a> to manage your properties.</p>
+            <br/>
+            <p>Best regards,<br/>The Toolate Team</p>
+          `,
+        });
+        emailsSent++;
+      } catch (emailErr) {
+        console.error(`Failed to send expiry email for listing ${listing.id}:`, emailErr);
       }
     }
 

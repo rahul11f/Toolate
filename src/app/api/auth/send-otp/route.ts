@@ -1,24 +1,7 @@
 import { NextResponse } from 'next/server';
 import { redis, otpRateLimiter } from '@/lib/redis';
-import { Resend } from 'resend';
 import prisma from '@/lib/prisma';
-import nodemailer from 'nodemailer';
-
-const resend = new Resend(process.env.RESEND_API_KEY || '');
-
-// Configure SMTP transport if SMTP user & pass are set
-const smtpUser = process.env.SMTP_USER || '';
-const smtpPassword = process.env.SMTP_PASSWORD || '';
-
-const smtpTransporter = smtpUser && smtpPassword
-  ? nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: smtpUser,
-        pass: smtpPassword,
-      },
-    })
-  : null;
+import { sendEmail } from '@/lib/mail';
 
 export async function POST(req: Request) {
   try {
@@ -71,97 +54,32 @@ export async function POST(req: Request) {
 
     const isDev = process.env.NODE_ENV === 'development';
 
-    // 5. Send email via SMTP (Nodemailer/Gmail) or Resend
-    if (smtpTransporter) {
-      try {
-        await smtpTransporter.sendMail({
-          from: `"Toolate" <${smtpUser}>`,
-          to: normalizedEmail,
-          subject: 'Your Toolate OTP Verification Code',
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-              <h2 style="color: #6366f1;">Welcome to Toolate!</h2>
-              <p>Your OTP verification code for sign up is:</p>
-              <h1 style="background: #f3f4f6; display: inline-block; padding: 10px 20px; letter-spacing: 4px; border-radius: 8px; font-weight: bold; color: #1f2937;">${otp}</h1>
-              <p>This code will expire in 5 minutes. If you did not request this, please ignore this email.</p>
-            </div>
-          `,
-        });
-      } catch (smtpError: any) {
-        console.error('Failed to send email via SMTP:', smtpError);
-        if (isDev) {
-          console.warn(`[DEVELOPMENT] Bypassing SMTP failure. OTP: ${otp}`);
-          return NextResponse.json({
-            success: true,
-            message: `[Dev Mode] Verification code is ${otp} (SMTP failed: ${smtpError.message})`,
-            devOtp: otp,
-          });
-        }
-        return NextResponse.json(
-          { error: smtpError.message || 'Failed to send verification email via SMTP.' },
-          { status: 500 }
-        );
-      }
-    } else if (process.env.RESEND_API_KEY) {
-      try {
-        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-        const formattedFrom = fromEmail.includes('<') ? fromEmail : `Toolate <${fromEmail}>`;
-
-        const { error: resendError } = await resend.emails.send({
-          from: formattedFrom,
-          to: normalizedEmail,
-          subject: 'Your Toolate OTP Verification Code',
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-              <h2 style="color: #6366f1;">Welcome to Toolate!</h2>
-              <p>Your OTP verification code for sign up is:</p>
-              <h1 style="background: #f3f4f6; display: inline-block; padding: 10px 20px; letter-spacing: 4px; border-radius: 8px; font-weight: bold; color: #1f2937;">${otp}</h1>
-              <p>This code will expire in 5 minutes. If you did not request this, please ignore this email.</p>
-            </div>
-          `,
-        });
-        if (resendError) {
-          console.error('Failed to send email via Resend:', resendError);
-          if (isDev) {
-            console.warn(`[DEVELOPMENT] Bypassing Resend failure. OTP: ${otp}`);
-            return NextResponse.json({
-              success: true,
-              message: `[Dev Mode] Verification code is ${otp} (Resend failed: ${resendError.message})`,
-              devOtp: otp,
-            });
-          }
-          return NextResponse.json(
-            { error: resendError.message || 'Failed to send verification email.' },
-            { status: 400 }
-          );
-        }
-      } catch (emailError: any) {
-        console.error('Failed to send email via Resend:', emailError);
-        if (isDev) {
-          console.warn(`[DEVELOPMENT] Bypassing Resend error. OTP: ${otp}`);
-          return NextResponse.json({
-            success: true,
-            message: `[Dev Mode] Verification code is ${otp} (Resend error: ${emailError.message})`,
-            devOtp: otp,
-          });
-        }
-        return NextResponse.json(
-          { error: emailError.message || 'Failed to send verification email.' },
-          { status: 500 }
-        );
-      }
-    } else {
-      console.error('No email sending configuration found.');
+    // 5. Send email via unified sendEmail utility
+    try {
+      await sendEmail({
+        to: normalizedEmail,
+        subject: 'Your Toolate OTP Verification Code',
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #6366f1;">Welcome to Toolate!</h2>
+            <p>Your OTP verification code for sign up is:</p>
+            <h1 style="background: #f3f4f6; display: inline-block; padding: 10px 20px; letter-spacing: 4px; border-radius: 8px; font-weight: bold; color: #1f2937;">${otp}</h1>
+            <p>This code will expire in 5 minutes. If you did not request this, please ignore this email.</p>
+          </div>
+        `,
+      });
+    } catch (emailError: any) {
+      console.error('Failed to send verification email:', emailError);
       if (isDev) {
-        console.warn(`[DEVELOPMENT] Bypassing email send. No config. OTP: ${otp}`);
+        console.warn(`[DEVELOPMENT] Bypassing email failure. OTP: ${otp}`);
         return NextResponse.json({
           success: true,
-          message: `[Dev Mode] Verification code is ${otp} (No email configuration found)`,
+          message: `[Dev Mode] Verification code is ${otp} (Email send failed: ${emailError.message})`,
           devOtp: otp,
         });
       }
       return NextResponse.json(
-        { error: 'Email sending configuration (SMTP or Resend) is missing.' },
+        { error: emailError.message || 'Failed to send verification email.' },
         { status: 500 }
       );
     }

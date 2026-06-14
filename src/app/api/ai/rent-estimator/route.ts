@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
       where: {
         status: ListingStatus.APPROVED,
         category: category as ListingCategory,
-        city: { equals: city, mode: 'insensitive' },
-        area: { equals: area, mode: 'insensitive' },
+        city: city,
+        area: area,
         createdAt: { gte: ninetyDaysAgo },
         id: id ? { not: id } : undefined, // exclude current listing if editing/viewing
       },
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
         where: {
           status: ListingStatus.APPROVED,
           category: category as ListingCategory,
-          city: { equals: city, mode: 'insensitive' },
+          city: city,
           createdAt: { gte: ninetyDaysAgo },
           id: id ? { not: id } : undefined,
         },

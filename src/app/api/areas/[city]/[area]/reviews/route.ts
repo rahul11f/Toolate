@@ -14,8 +14,8 @@ export async function GET(
   try {
     const reviews = await prisma.areaReview.findMany({
       where: {
-        city: { equals: decodedCity, mode: 'insensitive' },
-        area: { equals: decodedArea, mode: 'insensitive' },
+        city: decodedCity,
+        area: decodedArea,
       },
       include: {
         user: {
