@@ -103,6 +103,8 @@ export default function SafeImage({
         src={src}
         alt={alt}
         onError={handleError}
+        referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
         className={`${className} absolute inset-0 w-full h-full object-cover z-10`}
       />
     </div>
