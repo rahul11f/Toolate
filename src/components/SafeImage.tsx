@@ -113,28 +113,16 @@ export default function SafeImage({
   }
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
-      {/* Loading Skeleton — sits BEHIND the image via z-index, fades out when image loads */}
-      <div
-        className={`absolute inset-0 z-0 bg-slate-100 flex items-center justify-center transition-opacity duration-500 ${
-          loaded ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-pulse'
-        }`}
-      >
-        <div className="flex flex-col items-center space-y-2">
-          <Building className="w-8 h-8 text-slate-300 animate-bounce" />
-          <div className="w-16 h-2 bg-slate-200 rounded-full" />
-        </div>
-      </div>
-      {/* Image always rendered with full opacity so browser eagerly fetches it */}
+    <div className="relative w-full h-full overflow-hidden bg-slate-50">
       <img
         ref={imgRef}
         src={src}
         alt={alt}
         onLoad={handleLoad}
         onError={handleError}
-        loading="eager"
+        loading="lazy"
         decoding="async"
-        className={`${className} absolute inset-0 z-10 w-full h-full object-cover`}
+        className={`${className} w-full h-full object-cover`}
       />
     </div>
   );
