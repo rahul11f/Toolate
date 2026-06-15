@@ -87,9 +87,7 @@ export default function ImageCarousel({ images, title, category = 'RESIDENTIAL' 
             onError={handleImageError}
             loading="eager"
             decoding="async"
-            className={`w-full h-full object-contain z-10 transition-opacity duration-500 ${
-              isCurrentLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
+            className={`w-full h-full object-contain z-10 transition-opacity duration-500`}
           />
         )}
       </div>

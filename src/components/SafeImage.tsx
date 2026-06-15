@@ -134,9 +134,7 @@ export default function SafeImage({
         onError={handleError}
         loading="eager"
         decoding="async"
-        className={`${className} absolute inset-0 z-10 w-full h-full object-cover transition-opacity duration-500 ${
-          loaded ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`${className} absolute inset-0 z-10 w-full h-full object-cover`}
       />
     </div>
   );
