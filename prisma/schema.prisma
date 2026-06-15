@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -133,6 +134,7 @@ model AdminLog {
   details    String?
   timestamp  DateTime @default(now())
   admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  @@index([adminId])
 }
 
 model SiteSettings {
@@ -166,6 +168,8 @@ model Review {
   verifiedTenant Boolean  @default(false)
   listing        Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([listingId])
+  @@index([userId])
 }
 
 model Feedback {

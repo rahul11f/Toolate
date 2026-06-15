@@ -113,7 +113,7 @@ export default function SafeImage({
   }
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-slate-50">
+    <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-50">
       <img
         ref={imgRef}
         src={src}
@@ -122,7 +122,7 @@ export default function SafeImage({
         onError={handleError}
         loading="lazy"
         decoding="async"
-        className={`${className} w-full h-full object-cover`}
+        className={`${className} absolute inset-0 w-full h-full object-cover`}
       />
     </div>
   );
