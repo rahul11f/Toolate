@@ -10,6 +10,7 @@ import InstallAppPopup from '@/components/InstallAppPopup';
 import FloatingContactButton from '@/components/FloatingContactButton';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import { getCachedSettings } from '@/lib/settings';
+import NextTopLoader from 'nextjs-toploader';
 import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -62,6 +63,7 @@ export default async function RootLayout({
         )}
       </head>
       <body className={`${inter.className} min-h-full flex flex-col text-slate-800 antialiased`}>
+        <NextTopLoader color="#4f46e5" showSpinner={false} height={3} shadow="0 0 10px #4f46e5,0 0 5px #4f46e5" />
         <Providers>
           <Navbar />
           <div className="flex-grow flex justify-center w-full max-w-[100vw] overflow-x-hidden relative">

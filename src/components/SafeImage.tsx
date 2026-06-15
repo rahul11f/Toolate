@@ -114,26 +114,22 @@ export default function SafeImage({
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-50">
-      {/* Themed Animated Skeleton Background */}
-      <div 
-        className={`absolute inset-0 z-0 bg-gradient-to-br from-indigo-50 via-violet-100/50 to-indigo-50 bg-[length:200%_200%] animate-[pulse_2s_ease-in-out_infinite] flex items-center justify-center transition-opacity duration-700 ${
-          loaded ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin opacity-50"></div>
+      {/* Original Building Skeleton - always renders behind the image */}
+      <div className="absolute inset-0 z-0 bg-slate-100 flex items-center justify-center animate-pulse">
+        <div className="flex flex-col items-center space-y-2">
+          <Building className="w-8 h-8 text-slate-300 animate-bounce" />
+          <div className="w-16 h-2 bg-slate-200 rounded-full" />
+        </div>
       </div>
 
-      {/* Image */}
+      {/* Image - always renders on top. When it downloads, it naturally covers the skeleton. */}
       <img
         ref={imgRef}
         src={src}
         alt={alt}
-        onLoad={handleLoad}
         onError={handleError}
         decoding="async"
-        className={`${className} absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-500 ${
-          loaded ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`${className} absolute inset-0 w-full h-full object-cover z-10 bg-transparent`}
       />
     </div>
   );
