@@ -110,6 +110,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   // Build prisma filters
   const where: any = {
     status: ListingStatus.APPROVED,
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }
+    ]
   };
 
   if (category && Object.values(ListingCategory).includes(category)) {

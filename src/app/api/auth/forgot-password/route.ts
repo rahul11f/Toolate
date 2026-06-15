@@ -63,10 +63,14 @@ export async function POST(req: Request) {
     });
 
     // 5. Send the email with the reset link
-    const baseUrl = process.env.NEXTAUTH_URL 
-      || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
-      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-      || 'http://localhost:3000';
+    const protocol = req.headers.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+    const host = req.headers.get('host') || 'localhost:3000';
+    let baseUrl = `${protocol}://${host}`;
+    
+    // Override if Vercel explicitly provides a production URL and we are not on localhost
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL && !host.includes('localhost')) {
+      baseUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
     const resetUrl = `${baseUrl}/reset-password?token=${token}&email=${encodeURIComponent(normalizedEmail)}`;
 
     const emailHtml = `

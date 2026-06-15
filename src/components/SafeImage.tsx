@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Home, Users, Hotel, Store, Briefcase, Building, Sparkles } from 'lucide-react';
 
 interface SafeImageProps {
@@ -20,31 +20,15 @@ export default function SafeImage({
 }: SafeImageProps) {
   const [prevSrc, setPrevSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   // Standard React pattern to reset state during rendering when props change
   if (src !== prevSrc) {
     setPrevSrc(src);
     setHasError(false);
-    setLoaded(false);
   }
-
-  // Detect images that loaded from browser cache (onLoad may not fire for cached images)
-  useEffect(() => {
-    const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth > 0) {
-      setLoaded(true);
-    }
-  }, [src]);
-
-  const handleLoad = useCallback(() => {
-    setLoaded(true);
-  }, []);
 
   const handleError = useCallback(() => {
     setHasError(true);
-    setLoaded(false);
   }, []);
 
   const normalizedCategory = category ? category.toUpperCase() : 'RESIDENTIAL';
@@ -114,23 +98,14 @@ export default function SafeImage({
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden bg-slate-50">
-      {/* Original Building Skeleton - always renders behind the image */}
-      <div className="absolute inset-0 z-0 bg-slate-100 flex items-center justify-center animate-pulse">
-        <div className="flex flex-col items-center space-y-2">
-          <Building className="w-8 h-8 text-slate-300 animate-bounce" />
-          <div className="w-16 h-2 bg-slate-200 rounded-full" />
-        </div>
-      </div>
-
-      {/* Image - always renders on top. When it downloads, it naturally covers the skeleton. */}
       <img
-        ref={imgRef}
+        key={src}
         src={src}
         alt={alt}
         onError={handleError}
-        decoding="async"
-        className={`${className} absolute inset-0 w-full h-full object-cover z-10 bg-transparent`}
+        className={`${className} absolute inset-0 w-full h-full object-cover z-10`}
       />
     </div>
   );
 }
+
