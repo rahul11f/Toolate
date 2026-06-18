@@ -8,7 +8,7 @@ A utility application to help you manage schedules and avoid being too late.
 - Easy to set up and run locally.
 
 ## 🚀 Live Demo
-Check out the live version here: [Live Demo](https://rahul11f.github.io/Toolate)
+Check out the live version here: [Live Demo](https://toolate-rahul11fs-projects.vercel.app)
 
 ## 🛠️ Installation & Setup
 
