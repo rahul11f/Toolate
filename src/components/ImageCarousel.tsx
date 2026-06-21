@@ -88,7 +88,6 @@ export default function ImageCarousel({ images, title, category = 'RESIDENTIAL' 
             loading="eager"
             decoding="async"
             referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
             className={`w-full h-full object-contain z-10 transition-opacity duration-500`}
           />
         )}
