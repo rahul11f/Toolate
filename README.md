@@ -10,6 +10,9 @@ A utility application to help you manage schedules and avoid being too late.
 ## 🚀 Live Demo
 Check out the live version here: [Live Demo](https://toolate-rahul11fs-projects.vercel.app)
 
+## 📖 Documentation
+For a comprehensive architectural breakdown, real-world examples, and placement interview Q&A related to this project, read the [Project Overview & Interview Prep Guide](./PROJECT_OVERVIEW.md).
+
 ## 🛠️ Installation & Setup
 
 1. Clone the repository:
