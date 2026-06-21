@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ListingCategory } from '@/lib/types';
-import { Search, MapPin, Loader2 } from 'lucide-react';
+import { Search, MapPin, Loader2, ChevronDown, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function HomeSearchForm() {
@@ -12,6 +12,18 @@ export default function HomeSearchForm() {
   const [category, setCategory] = useState('');
   const [city, setCity] = useState('');
   const [locating, setLocating] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const categoryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
+        setIsCategoryOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,21 +81,47 @@ export default function HomeSearchForm() {
       </div>
 
       {/* Category */}
-      <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1">
-        <label htmlFor="search-category" className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Category</label>
-        <select
-          id="search-category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full bg-transparent border-none focus:outline-hidden focus:ring-0 text-sm py-1 text-slate-700 appearance-none font-medium cursor-pointer outline-hidden"
+      <div className="md:border-l border-slate-100 flex-1 flex flex-col items-start px-3 py-1 relative" ref={categoryRef}>
+        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Category</label>
+        <button
+          type="button"
+          onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+          className="w-full bg-transparent flex items-center justify-between text-sm py-1 text-slate-700 font-medium cursor-pointer outline-none"
         >
-          <option value="">All Categories</option>
-          {Object.values(ListingCategory).map((cat) => (
-            <option key={cat} value={cat}>
-              {cat === 'ROOMMATE' ? 'Roommates / Roomy' : cat.charAt(0) + cat.slice(1).toLowerCase()}
-            </option>
-          ))}
-        </select>
+          <span className={!category ? 'text-slate-400' : 'text-slate-700'}>
+            {category 
+              ? (category === 'ROOMMATE' ? 'Roommates / Roomy' : category.charAt(0) + category.slice(1).toLowerCase())
+              : 'All Categories'}
+          </span>
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isCategoryOpen ? 'rotate-180' : ''}`} />
+        </button>
+        
+        {/* Custom Dropdown Menu */}
+        {isCategoryOpen && (
+          <div className="absolute top-[calc(100%+0.5rem)] left-0 w-full min-w-[220px] bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="max-h-60 overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-slate-200">
+              <button
+                type="button"
+                onClick={() => { setCategory(''); setIsCategoryOpen(false); }}
+                className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-colors flex items-center justify-between ${!category ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                All Categories
+                {!category && <Check className="w-4 h-4 text-indigo-600 shrink-0" />}
+              </button>
+              {Object.values(ListingCategory).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => { setCategory(cat); setIsCategoryOpen(false); }}
+                  className={`w-full text-left px-3 py-2.5 text-sm rounded-xl transition-colors mt-0.5 flex items-center justify-between ${category === cat ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {cat === 'ROOMMATE' ? 'Roommates / Roomy' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+                  {category === cat && <Check className="w-4 h-4 text-indigo-600 shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Location / City with Near Me Button */}

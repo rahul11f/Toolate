@@ -129,18 +129,30 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-16 pb-12">
-      {isPeakMovingSeason && (
-        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white py-3 px-4 text-center font-extrabold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 rounded-2xl mx-4 sm:mx-6 lg:mx-8 mt-4 animate-fade-in border border-amber-300/20">
-          <span className="animate-bounce">🚨</span>
-          <span>Peak Moving Season Alert: Demand is currently extremely high. Listings are filling up 3x faster. Secure your rental early!</span>
-        </div>
-      )}
-
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white py-20 px-4 overflow-hidden rounded-2xl mx-4 sm:mx-6 lg:mx-8 mt-4">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_50%)]" />
-        <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 backdrop-blur-sm">
+      <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white py-20 px-4 rounded-2xl mx-4 sm:mx-6 lg:mx-8 mt-6 border border-indigo-500/10 shadow-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.15),transparent_50%)] rounded-2xl pointer-events-none" />
+        
+        {/* Premium Peak Season Integrated Banner */}
+        {isPeakMovingSeason && (
+          <div className="absolute top-0 left-0 right-0 w-full bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent border-b border-indigo-500/20 backdrop-blur-md z-20 shadow-sm shadow-indigo-500/10 rounded-t-2xl">
+            <div className="max-w-5xl mx-auto py-2.5 px-4 flex items-center justify-center gap-3 animate-fade-in">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400"></span>
+              </span>
+              <span className="text-[11px] sm:text-xs font-medium text-indigo-100/90 tracking-wider uppercase flex items-center gap-2">
+                <Sparkles className="w-3 h-3 text-indigo-300" />
+                <span className="font-bold text-white">Peak Moving Season:</span> 
+                <span className="hidden sm:inline text-indigo-200">Demand is extremely high. Listings fill 3x faster.</span>
+                <span className="sm:hidden text-indigo-200">Listings fill 3x faster.</span>
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className={`max-w-5xl mx-auto text-center space-y-8 relative z-10 ${isPeakMovingSeason ? 'pt-6' : ''}`}>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 backdrop-blur-sm shadow-inner shadow-indigo-500/10">
             🚀 100% Free Property & Roommate Directory
           </span>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight whitespace-pre-line">
