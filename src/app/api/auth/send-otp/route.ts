@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { redis, otpRateLimiter } from '@/lib/redis';
 import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/mail';
+import { isDisposableEmail } from '@/lib/email-validator';
 
 export async function POST(req: Request) {
   try {
@@ -11,6 +12,14 @@ export async function POST(req: Request) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+
+    // 0. Prevent Disposable/Fake Emails
+    if (isDisposableEmail(normalizedEmail)) {
+      return NextResponse.json(
+        { error: 'Please use a valid, permanent email address. Disposable or temporary emails are not allowed.' },
+        { status: 400 }
+      );
+    }
 
     // 1. Check rate limits (resilient to Redis errors)
     let isRateLimitOk = true;

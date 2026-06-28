@@ -4,6 +4,7 @@ import { verifyRecaptcha } from '@/lib/recaptcha';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
+import { isDisposableEmail } from '@/lib/email-validator';
 
 // Zod schema for signup validation
 const signupSchema = z.object({
@@ -27,6 +28,14 @@ export async function POST(req: Request) {
 
     const { name, email, password, otp, recaptchaToken } = validationResult.data;
     const normalizedEmail = email.trim().toLowerCase();
+
+    // 1.5 Prevent Disposable/Fake Emails
+    if (isDisposableEmail(normalizedEmail)) {
+      return NextResponse.json(
+        { error: 'Please use a valid, permanent email address. Disposable or temporary emails are not allowed.' },
+        { status: 400 }
+      );
+    }
 
     // 2. Check rate limits (resilient to Redis errors)
     let isRateLimitOk = true;

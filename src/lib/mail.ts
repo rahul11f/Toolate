@@ -40,8 +40,8 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
 
       return { success: true, method: 'smtp' };
     } catch (smtpError: unknown) {
-      console.error('[Mail Utility] Failed to send email via SMTP:', smtpError);
-      throw smtpError;
+      console.error('[Mail Utility] Failed to send email via SMTP (possibly IP unauthorized). Falling back to Resend...', smtpError);
+      // Do not throw here, allow it to fall back to Resend API
     }
   }
 

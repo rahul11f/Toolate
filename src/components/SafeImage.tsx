@@ -104,6 +104,9 @@ export default function SafeImage({
         alt={alt}
         onError={handleError}
         referrerPolicy="no-referrer"
+        loading="eager"
+        fetchPriority={priority ? 'high' : 'auto'}
+        decoding="sync"
         className={`${className} absolute inset-0 w-full h-full object-cover z-10`}
       />
     </div>
