@@ -88,7 +88,9 @@ export async function POST(req: NextRequest) {
         publicUrl = publicUrlData.publicUrl;
       }
 
-      uploadedUrls.push(publicUrl);
+      if (publicUrl) {
+        uploadedUrls.push(publicUrl);
+      }
     }
 
     return NextResponse.json({

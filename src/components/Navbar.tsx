@@ -59,7 +59,7 @@ export default function Navbar() {
               table: 'Notification',
               filter: `userId=eq.${userId}`,
             },
-            (payload) => {
+            (payload: any) => {
               setNotifications((prev) => [payload.new, ...prev]);
               toast.success(`New alert: ${payload.new.title}`);
             }
