@@ -120,11 +120,17 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
   }
 
   if (state) {
-    where.state = state;
+    where.state = {
+      equals: state,
+      mode: 'insensitive'
+    };
   }
 
   if (city) {
-    where.city = city;
+    where.city = {
+      equals: city,
+      mode: 'insensitive'
+    };
   }
 
   if (category === ListingCategory.ROOMMATE || category === ListingCategory.HOTEL || category === ListingCategory.SHARE_STAY) {

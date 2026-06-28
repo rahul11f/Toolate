@@ -5,7 +5,7 @@ import { redis } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_KEY = 'locations:distinct';
+const CACHE_KEY = 'locations:distinct:v2';
 
 export async function GET() {
   try {
@@ -29,8 +29,16 @@ export async function GET() {
       },
     });
 
-    const states = Array.from(new Set(listings.map((l) => l.state).filter(Boolean))).sort();
-    const cities = Array.from(new Set(listings.map((l) => l.city).filter(Boolean))).sort();
+    const toTitleCase = (str: string) => {
+      if (!str) return '';
+      return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    };
+
+    const rawStates = listings.map((l) => l.state).filter(Boolean);
+    const rawCities = listings.map((l) => l.city).filter(Boolean);
+
+    const states = Array.from(new Set(rawStates.map(toTitleCase))).sort();
+    const cities = Array.from(new Set(rawCities.map(toTitleCase))).sort();
     const result = { states, cities };
 
     // 3. Cache findings in Redis for 1 hour
