@@ -8,6 +8,7 @@ import { Menu, X, PlusCircle, Building, LogOut, LayoutDashboard, Settings, User,
 import InstallAppButton from './InstallAppButton';
 import UserAvatar from './UserAvatar';
 import toast from 'react-hot-toast';
+import { supabaseClient } from '@/lib/supabase';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -41,14 +42,36 @@ export default function Navbar() {
     }
   };
 
-  // Poll notifications
+  // Real-time notifications
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && session?.user) {
       fetchNotifications();
-      const timer = setInterval(fetchNotifications, 15000); // Poll every 15s
-      return () => clearInterval(timer);
+      const userId = (session.user as any).id;
+
+      if (userId) {
+        const channel = supabaseClient
+          .channel('realtime-notifications')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'Notification',
+              filter: `userId=eq.${userId}`,
+            },
+            (payload) => {
+              setNotifications((prev) => [payload.new, ...prev]);
+              toast.success(`New alert: ${payload.new.title}`);
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabaseClient.removeChannel(channel);
+        };
+      }
     }
-  }, [status]);
+  }, [status, session]);
 
   // Click outside listener for dropdowns
   useEffect(() => {

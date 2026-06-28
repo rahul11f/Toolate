@@ -97,8 +97,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       }
 
       const { dayOfWeek, startTime, endTime } = body;
-      if (dayOfWeek === undefined || !startTime || !endTime) {
-        return NextResponse.json({ error: 'Missing slot details' }, { status: 400 });
+      if (dayOfWeek === undefined || dayOfWeek < 0 || dayOfWeek > 7 || !startTime || !endTime) {
+        return NextResponse.json({ error: 'Missing or invalid slot details' }, { status: 400 });
       }
 
       const slot = await prisma.viewingSlot.create({

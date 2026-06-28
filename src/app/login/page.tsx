@@ -24,6 +24,7 @@ function LoginForm() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const authError = searchParams.get('error');
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   const {
     register,
@@ -51,7 +52,7 @@ function LoginForm() {
         toast.error('Invalid email or password.');
       } else {
         toast.success('Successfully logged in!');
-        router.push('/dashboard');
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch {
@@ -65,7 +66,7 @@ function LoginForm() {
     setGoogleLoading(true);
 
     try {
-      await signIn('google', { callbackUrl: '/dashboard' });
+      await signIn('google', { callbackUrl });
     } catch {
       toast.error('Could not authenticate with Google.');
       setGoogleLoading(false);

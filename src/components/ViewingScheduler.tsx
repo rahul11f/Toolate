@@ -32,7 +32,7 @@ interface ViewingSchedulerProps {
   listingId: string;
 }
 
-const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Any Day'];
 
 export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
   const [isOwner, setIsOwner] = useState(false);
@@ -44,6 +44,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
   const [newDay, setNewDay] = useState(1); // Monday
   const [newStart, setNewStart] = useState('10:00');
   const [newEnd, setNewEnd] = useState('12:00');
+  const [anyTime, setAnyTime] = useState(false);
   const [addingSlot, setAddingSlot] = useState(false);
 
   // Tenant booking form states
@@ -84,8 +85,8 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
         body: JSON.stringify({
           action: 'create_slot',
           dayOfWeek: newDay,
-          startTime: newStart,
-          endTime: newEnd,
+          startTime: anyTime ? 'Any Time' : newStart,
+          endTime: anyTime ? 'Any Time' : newEnd,
         }),
       });
 
@@ -192,7 +193,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
   };
 
   const activeDayOfWeek = getSelectedDayOfWeek();
-  const availableSlotsForSelectedDate = slots.filter((s) => s.dayOfWeek === activeDayOfWeek);
+  const availableSlotsForSelectedDate = slots.filter((s) => s.dayOfWeek === activeDayOfWeek || s.dayOfWeek === 7);
 
   const getStatusBadge = (status: 'PENDING' | 'CONFIRMED' | 'CANCELLED') => {
     switch (status) {
@@ -243,7 +244,8 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                   type="time"
                   value={newStart}
                   onChange={(e) => setNewStart(e.target.value)}
-                  className="w-full bg-white border border-slate-200 text-xs px-3 py-2 rounded-lg outline-hidden font-semibold"
+                  disabled={anyTime}
+                  className="w-full bg-white border border-slate-200 text-xs px-3 py-2 rounded-lg outline-hidden font-semibold disabled:opacity-50"
                 />
               </div>
 
@@ -253,10 +255,16 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                   type="time"
                   value={newEnd}
                   onChange={(e) => setNewEnd(e.target.value)}
-                  className="w-full bg-white border border-slate-200 text-xs px-3 py-2 rounded-lg outline-hidden font-semibold"
+                  disabled={anyTime}
+                  className="w-full bg-white border border-slate-200 text-xs px-3 py-2 rounded-lg outline-hidden font-semibold disabled:opacity-50"
                 />
               </div>
             </div>
+            
+            <label className="flex items-center gap-2 cursor-pointer mt-2 mb-4">
+              <input type="checkbox" checked={anyTime} onChange={(e) => setAnyTime(e.target.checked)} className="w-4 h-4 text-indigo-600 rounded-md border-slate-300" />
+              <span className="text-xs font-semibold text-slate-600">No specific time period (Any Time)</span>
+            </label>
 
             <button
               type="submit"
@@ -280,7 +288,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                     key={slot.id}
                     className="flex items-center gap-2 bg-indigo-50/50 border border-indigo-100 rounded-lg px-3 py-1.5 text-xs text-indigo-950 font-semibold"
                   >
-                    <span>{DAYS_OF_WEEK[slot.dayOfWeek]}: {slot.startTime} - {slot.endTime}</span>
+                    <span>{DAYS_OF_WEEK[slot.dayOfWeek]}: {slot.startTime === 'Any Time' ? 'Any Time' : `${slot.startTime} - ${slot.endTime}`}</span>
                     <button
                       onClick={() => handleDeleteSlot(slot.id)}
                       className="text-slate-400 hover:text-rose-600 transition"
@@ -317,7 +325,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                         <p className="text-slate-450 text-xs">Email: {booking.tenant?.email || 'N/A'}</p>
                         <p className="text-indigo-700 text-xs font-bold flex items-center gap-1 mt-1">
                           <Clock className="w-3 h-3" />
-                          <span>Slot: {booking.slot.startTime} - {booking.slot.endTime}</span>
+                          <span>Slot: {booking.slot.startTime === 'Any Time' ? 'Any Time' : `${booking.slot.startTime} - ${booking.slot.endTime}`}</span>
                         </p>
                       </div>
 
@@ -378,7 +386,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                   {availableSlotsForSelectedDate.length === 0 ? (
                     <div className="text-xs text-rose-600 bg-rose-50/50 border border-rose-100 rounded-lg p-2 flex items-center gap-1.5">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Owner is not available on {DAYS_OF_WEEK[activeDayOfWeek]}s.</span>
+                      <span>Owner is not available on {activeDayOfWeek >= 0 && activeDayOfWeek < 7 ? DAYS_OF_WEEK[activeDayOfWeek] + 's' : 'this day'}.</span>
                     </div>
                   ) : (
                     <select
@@ -388,7 +396,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                     >
                       <option value="">-- Choose Slot --</option>
                       {availableSlotsForSelectedDate.map((slot) => (
-                        <option key={slot.id} value={slot.id}>{slot.startTime} - {slot.endTime}</option>
+                        <option key={slot.id} value={slot.id}>{slot.dayOfWeek === 7 ? 'Any Day - ' : ''}{slot.startTime === 'Any Time' ? 'Any Time' : `${slot.startTime} - ${slot.endTime}`}</option>
                       ))}
                     </select>
                   )}
@@ -444,7 +452,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                       </div>
                       <p className="text-slate-750 font-bold flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>Visit Time: {booking.slot.startTime} - {booking.slot.endTime}</span>
+                        <span>Visit Time: {booking.slot.startTime === 'Any Time' ? 'Any Time' : `${booking.slot.startTime} - ${booking.slot.endTime}`}</span>
                       </p>
                       {booking.message && (
                         <p className="text-[10px] text-slate-450 leading-relaxed italic">
