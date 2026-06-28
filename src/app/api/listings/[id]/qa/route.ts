@@ -71,6 +71,17 @@ export async function POST(
         },
       });
 
+      // Notify the user who asked the question
+      if (updatedQA.askedBy !== userId) {
+        await prisma.notification.create({
+          data: {
+            userId: updatedQA.askedBy,
+            title: 'Your question was answered',
+            message: `The landlord has answered your question.`,
+          }
+        });
+      }
+
       return NextResponse.json(updatedQA);
     }
 
@@ -101,6 +112,22 @@ export async function POST(
         question: question.trim(),
       },
     });
+
+    // Notify the listing owner
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { userId: true, title: true }
+    });
+    
+    if (listing && listing.userId !== userId) {
+      await prisma.notification.create({
+        data: {
+          userId: listing.userId,
+          title: 'New Question Received',
+          message: `Someone asked a question about ${listing.title}.`,
+        }
+      });
+    }
 
     return NextResponse.json(newQA);
   } catch (error: any) {

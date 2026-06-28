@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/mail';
 
 export const dynamic = 'force-dynamic';
-
-const resend = new Resend(process.env.RESEND_API_KEY || '');
 
 // GET: Retrieve slots and bookings for a listing
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -143,11 +141,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         },
       });
 
-      // Email landlord via Resend
-      if (process.env.RESEND_API_KEY && listing.user.email) {
+      // Email and notify landlord
+      if (listing.user.email) {
         try {
-          await resend.emails.send({
-            from: 'Toolate <onboarding@resend.dev>',
+          await sendEmail({
             to: listing.user.email,
             subject: `New Viewing Booking Request for "${listing.title}"`,
             html: `
@@ -167,6 +164,15 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
           console.error('Error sending viewing email to landlord:', emailErr);
         }
       }
+      
+      // Create notification
+      await prisma.notification.create({
+        data: {
+          userId: listing.userId,
+          title: 'New Viewing Request',
+          message: `A tenant has requested a viewing for ${listing.title} on ${bookingDate.toLocaleDateString()}`,
+        }
+      });
 
       return NextResponse.json({ success: true, booking });
     }
@@ -223,12 +229,11 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
       data: { status },
     });
 
-    // Send email notification to tenant via Resend
-    if (process.env.RESEND_API_KEY && booking.tenant.email) {
+    // Send email and notification to tenant
+    if (booking.tenant.email) {
       try {
         const subjectStatus = status === 'CONFIRMED' ? 'Confirmed ✅' : 'Cancelled ❌';
-        await resend.emails.send({
-          from: 'Toolate <onboarding@resend.dev>',
+        await sendEmail({
           to: booking.tenant.email,
           subject: `Property Viewing Appointment ${subjectStatus}: ${booking.listing.title}`,
           html: `
@@ -247,6 +252,15 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
         console.error('Error sending status email to tenant:', emailErr);
       }
     }
+    
+    // Create notification
+    await prisma.notification.create({
+      data: {
+        userId: booking.tenantId,
+        title: `Viewing ${status}`,
+        message: `Your viewing request for ${booking.listing.title} has been ${status.toLowerCase()}`,
+      }
+    });
 
     return NextResponse.json({ success: true, booking: updatedBooking });
   } catch (error: any) {

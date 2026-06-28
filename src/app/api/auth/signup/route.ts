@@ -112,6 +112,15 @@ export async function POST(req: Request) {
       },
     });
 
+    // Send Welcome Notification
+    await prisma.notification.create({
+      data: {
+        userId: newUser.id,
+        title: 'Welcome to Toolate!',
+        message: 'Your email has been verified successfully. Start exploring listings today!',
+      }
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Account created successfully!',

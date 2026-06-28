@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY || '');
+import { sendEmail } from '@/lib/mail';
 
 export async function GET(req: Request) {
   try {
@@ -42,12 +40,11 @@ export async function GET(req: Request) {
     });
 
     let emailsSent = 0;
-    if (process.env.RESEND_API_KEY && users.length > 0) {
+    if (users.length > 0) {
       for (const user of users) {
         if (!user.email) continue;
         try {
-          await resend.emails.send({
-            from: 'Toolate Alerts <onboarding@resend.dev>',
+          await sendEmail({
             to: user.email,
             subject: `🚨 ALERT: ${seasonName} is Live!`,
             html: `

@@ -122,6 +122,17 @@ export async function POST(
       },
     });
 
+    // Create notification for listing owner
+    if (listing.userId !== userId) {
+      await prisma.notification.create({
+        data: {
+          userId: listing.userId,
+          title: 'New Review Received',
+          message: `Someone just left a ${result.data.rating}-star review on your listing.`,
+        }
+      });
+    }
+
     return NextResponse.json({ success: true, review });
   } catch (error: any) {
     console.error('Error creating review:', error);
