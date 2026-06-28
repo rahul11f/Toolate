@@ -32,8 +32,8 @@ export default function MobileBottomNav() {
 
   const isHomeActive = pathname === '/';
   const isSearchActive = pathname.startsWith('/listings');
-  const isAlertsActive = pathname === '/dashboard' && currentTab === 'notifications';
-  const isDashboardActive = pathname === '/dashboard' && currentTab !== 'notifications';
+  const isAlertsActive = pathname === '/notifications';
+  const isDashboardActive = pathname === '/dashboard';
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden select-none">
@@ -81,7 +81,7 @@ export default function MobileBottomNav() {
 
           {/* Alerts */}
           <Link
-            href="/dashboard?tab=notifications"
+            href="/notifications"
             className={`flex flex-col items-center justify-center py-2 px-4 transition-all duration-200 active:scale-95 relative ${
               isAlertsActive
                 ? 'text-indigo-655'
