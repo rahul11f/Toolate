@@ -315,7 +315,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                 {bookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs font-medium"
+                    className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col gap-4 text-xs font-medium"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -341,7 +341,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                     </div>
 
                     {booking.status === 'PENDING' && (
-                      <div className="flex flex-col gap-2 shrink-0 sm:min-w-[200px]">
+                      <div className="flex flex-col gap-2 mt-2">
                         <input
                           type="text"
                           placeholder="Optional message to tenant..."
@@ -349,7 +349,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                           onChange={(e) => setReturnMessages({ ...returnMessages, [booking.id]: e.target.value })}
                           className="w-full bg-white border border-slate-200 text-[11px] px-2.5 py-1.5 rounded-lg outline-hidden"
                         />
-                        <div className="flex gap-2 self-end sm:self-center">
+                        <div className="flex gap-2">
                           <button
                             onClick={() => handleUpdateBookingStatus(booking.id, 'CONFIRMED')}
                             className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg transition text-[11px]"
