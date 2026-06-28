@@ -60,6 +60,7 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [facilities, setFacilities] = useState<Record<string, any>>({});
   const [customAmenityInput, setCustomAmenityInput] = useState('');
 
@@ -303,6 +304,53 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
     } catch (err) {
       console.error('Failed reverse geocoding coordinates:', err);
     }
+  };
+
+  // 2b. Auto-detect user GPS location and reverse geocode it
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setValue('lat', latitude);
+        setValue('lng', longitude);
+        toast.loading('Fetching address from your location...', { id: 'geo' });
+        try {
+          const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.display_name) {
+              setValue('address', data.display_name);
+              setValue('area', extractArea(data.address));
+              setValue('state', extractState(data.address));
+              setValue('city', extractCity(data.address));
+              toast.success('Location detected and address filled!', { id: 'geo' });
+            } else {
+              toast.success('Location detected! Drag marker to refine.', { id: 'geo' });
+            }
+          } else {
+            toast.error('Could not fetch address for detected location.', { id: 'geo' });
+          }
+        } catch {
+          toast.error('Reverse geocoding failed.', { id: 'geo' });
+        } finally {
+          setLocating(false);
+        }
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error('Location access denied. Please allow location in browser settings.');
+        } else {
+          toast.error('Could not determine your location. Try searching manually.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   // 3. File upload handler
@@ -1952,9 +2000,29 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs text-slate-400">
             <span className="font-semibold">Interactive Map (Drag marker to refine exact position)</span>
-            <span className="font-mono bg-slate-50 px-2 py-1 rounded-sm border border-slate-100">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleDetectLocation}
+                disabled={locating}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200/60 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none"
+              >
+                {locating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Detecting...</span>
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>📍 Use My Location</span>
+                  </>
+                )}
+              </button>
+              <span className="font-mono bg-slate-50 px-2 py-1 rounded-sm border border-slate-100">
               Lat: {watchLat.toFixed(5)}, Lng: {watchLng.toFixed(5)}
             </span>
+            </div>
           </div>
           <div className="h-80 w-full rounded-xl overflow-hidden shadow-inner border border-slate-200">
             <LeafletMap

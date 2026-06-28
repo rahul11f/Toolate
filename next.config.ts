@@ -61,7 +61,7 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/;",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;",
               "img-src 'self' data: blob: https: http:;",
-              "connect-src 'self' https://router.project-osrm.org https://pagead2.googlesyndication.com https://nominatim.openstreetmap.org https://api.cloudinary.com https://ep1.adtrafficquality.google https://*.googleadservices.com https://*.google.com;",
+              "connect-src 'self' https://router.project-osrm.org https://pagead2.googlesyndication.com https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org https://api.cloudinary.com https://ep1.adtrafficquality.google https://*.googleadservices.com https://*.google.com https://cdnjs.cloudflare.com https://unpkg.com;",
               "frame-src 'self' https://googleads.g.doubleclick.net https://www.google.com/recaptcha/;",
               "font-src 'self' https://fonts.gstatic.com data:;",
               "object-src 'none';",
