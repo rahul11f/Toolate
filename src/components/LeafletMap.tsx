@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -16,34 +16,44 @@ const customMarkerIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-// Component to dynamically pan the map to a new center when coordinates change
+// Internal: smoothly pans map to new coords whenever they change
 function RecenterMap({ center }: { center: [number, number] }) {
   const map = useMap();
+  const prevCenter = useRef<[number, number]>(center);
+
   useEffect(() => {
-    map.setView(center, map.getZoom());
+    // Only pan if coordinates actually changed meaningfully (> 0.0001 deg = ~11m)
+    const latDiff = Math.abs(center[0] - prevCenter.current[0]);
+    const lngDiff = Math.abs(center[1] - prevCenter.current[1]);
+    if (latDiff > 0.0001 || lngDiff > 0.0001) {
+      map.flyTo(center, map.getZoom(), { animate: true, duration: 0.8 });
+      prevCenter.current = center;
+    }
   }, [center, map]);
+
   return null;
 }
 
-interface LeafletMapProps {
-  lat: number;
-  lng: number;
-  zoom?: number;
-  draggable?: boolean;
-  onChange?: (lat: number, lng: number) => void;
-}
-
-export default function LeafletMap({
-  lat,
-  lng,
-  zoom = 13,
-  draggable = false,
+// Internal: keeps marker in sync when coordinates change externally (e.g. address search)
+function SyncMarker({
+  position,
+  draggable,
   onChange,
-}: LeafletMapProps) {
+}: {
+  position: [number, number];
+  draggable: boolean;
+  onChange?: (lat: number, lng: number) => void;
+}) {
   const markerRef = useRef<any>(null);
-  const centerPosition: [number, number] = useMemo(() => [lat, lng], [lat, lng]);
 
-  const markerEventHandlers = useMemo(
+  // When position prop changes (from parent), move the marker
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng(position);
+    }
+  }, [position]);
+
+  const eventHandlers = useMemo(
     () => ({
       dragend() {
         const marker = markerRef.current;
@@ -57,9 +67,40 @@ export default function LeafletMap({
   );
 
   return (
+    <Marker
+      position={position}
+      icon={customMarkerIcon}
+      draggable={draggable}
+      eventHandlers={draggable ? eventHandlers : undefined}
+      ref={markerRef}
+    />
+  );
+}
+
+interface LeafletMapProps {
+  lat: number;
+  lng: number;
+  zoom?: number;
+  draggable?: boolean;
+  onChange?: (lat: number, lng: number) => void;
+}
+
+export default function LeafletMap({
+  lat,
+  lng,
+  zoom = 15,
+  draggable = false,
+  onChange,
+}: LeafletMapProps) {
+  // Use a stable initial center — MapContainer only reads `center` once on mount
+  // The RecenterMap component handles all subsequent panning
+  const initialCenter = useRef<[number, number]>([lat, lng]);
+  const currentPosition: [number, number] = useMemo(() => [lat, lng], [lat, lng]);
+
+  return (
     <div className="w-full h-full min-h-[300px] rounded-lg overflow-hidden border border-slate-200 shadow-inner relative z-0">
       <MapContainer
-        center={centerPosition}
+        center={initialCenter.current}
         zoom={zoom}
         scrollWheelZoom={false}
         className="w-full h-full"
@@ -68,14 +109,12 @@ export default function LeafletMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Marker
-          position={centerPosition}
-          icon={customMarkerIcon}
+        <SyncMarker
+          position={currentPosition}
           draggable={draggable}
-          eventHandlers={draggable ? markerEventHandlers : undefined}
-          ref={markerRef}
+          onChange={onChange}
         />
-        <RecenterMap center={centerPosition} />
+        <RecenterMap center={currentPosition} />
       </MapContainer>
     </div>
   );
