@@ -6,6 +6,7 @@ import { Bell, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabaseClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import NotificationActions from '@/components/NotificationActions';
 
 export default function NotificationsPage() {
   const { data: session, status } = useSession();
@@ -169,6 +170,11 @@ export default function NotificationsPage() {
                       minute: '2-digit',
                     })}
                   </p>
+                  <NotificationActions
+                    notificationId={n.id}
+                    type={n.type}
+                    actionData={n.actionData}
+                  />
                 </div>
               ))}
             </div>

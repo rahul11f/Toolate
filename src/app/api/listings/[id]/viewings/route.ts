@@ -171,6 +171,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
           userId: listing.userId,
           title: 'New Viewing Request',
           message: `A tenant has requested a viewing for ${listing.title} on ${bookingDate.toLocaleDateString()}`,
+          type: 'VIEWING_REQUEST',
+          actionData: JSON.stringify({ bookingId: booking.id, listingId }),
         }
       });
 

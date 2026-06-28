@@ -9,6 +9,7 @@ import InstallAppButton from './InstallAppButton';
 import UserAvatar from './UserAvatar';
 import toast from 'react-hot-toast';
 import { supabaseClient } from '@/lib/supabase';
+import NotificationActions from './NotificationActions';
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -225,6 +226,11 @@ export default function Navbar() {
                               <span className="text-[9px] text-slate-400 font-medium mt-1 block">
                                 {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
+                              <NotificationActions
+                                notificationId={n.id}
+                                type={n.type}
+                                actionData={n.actionData}
+                              />
                             </div>
                           ))}
                         </div>
