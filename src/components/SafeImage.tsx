@@ -103,7 +103,6 @@ export default function SafeImage({
         src={src}
         alt={alt}
         onError={handleError}
-        referrerPolicy="no-referrer"
         loading="eager"
         fetchPriority={priority ? 'high' : 'auto'}
         decoding="sync"
