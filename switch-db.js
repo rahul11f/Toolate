@@ -112,7 +112,11 @@ if (mode === 'sqlite') {
 
 // Regenerate Prisma Client
 try {
-  console.log('Regenerating Prisma Client...');
+  console.log('Regenerating Prisma Client and pushing schema...');
+  if (mode === 'postgres') {
+    // Attempt to push schema to Supabase during Vercel build
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+  }
   execSync('npx prisma generate', { stdio: 'inherit' });
   console.log('✨ Database configuration swapped successfully!');
 } catch (err) {
