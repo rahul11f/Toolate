@@ -8,17 +8,17 @@ export default function InstallAppPopup() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Check if the user dismissed it recently (within the last 24 hours)
-    const dismissedTime = localStorage.getItem('toolate-install-dismissed');
-    if (dismissedTime) {
-      const hoursPassed = (Date.now() - parseInt(dismissedTime)) / (1000 * 60 * 60);
-      if (hoursPassed < 24) return; // Skip prompting
-    }
+    // If user dismissed it permanently, never show again
+    if (localStorage.getItem('toolate-install-dismissed') === 'true') return;
+    
+    // Only show once per browser session to prevent annoying popups on refresh
+    if (sessionStorage.getItem('toolate-install-session-seen') === 'true') return;
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setIsVisible(true);
+      sessionStorage.setItem('toolate-install-session-seen', 'true');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -52,7 +52,7 @@ export default function InstallAppPopup() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem('toolate-install-dismissed', Date.now().toString());
+    localStorage.setItem('toolate-install-dismissed', 'true');
     setIsVisible(false);
   };
 
