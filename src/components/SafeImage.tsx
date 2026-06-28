@@ -103,6 +103,7 @@ export default function SafeImage({
         src={src}
         alt={alt}
         onError={handleError}
+        crossOrigin="anonymous"
         loading="eager"
         fetchPriority={priority ? 'high' : 'auto'}
         decoding="sync"

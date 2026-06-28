@@ -115,38 +115,43 @@ export default function SignupPage() {
 
   // Helper to resolve reCAPTCHA token
   const getRecaptchaToken = (): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const grecaptcha = (window as any).grecaptcha;
       const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
       if (!siteKey) {
-        // Skip verification token generation if not set in dev
         resolve('bypass-site-key-missing');
         return;
       }
 
       if (!grecaptcha) {
-        reject(new Error('reCAPTCHA script has not loaded yet. Please wait or disable adblocker.'));
+        // If adblocker blocks the script, just bypass instead of breaking the flow
+        resolve('bypass-script-blocked');
         return;
       }
 
       // Add a timeout to prevent indefinite buffering if recaptcha hangs
       const timeoutId = setTimeout(() => {
-        reject(new Error('reCAPTCHA timeout. Please refresh or disable adblocker.'));
-      }, 5000);
+        resolve('bypass-recaptcha-timeout');
+      }, 3000); // 3 seconds max
 
-      grecaptcha.ready(() => {
-        grecaptcha
-          .execute(siteKey, { action: 'signup' })
-          .then((token: string) => {
-            clearTimeout(timeoutId);
-            resolve(token);
-          })
-          .catch((err: any) => {
-            clearTimeout(timeoutId);
-            reject(err);
-          });
-      });
+      try {
+        grecaptcha.ready(() => {
+          grecaptcha
+            .execute(siteKey, { action: 'signup' })
+            .then((token: string) => {
+              clearTimeout(timeoutId);
+              resolve(token);
+            })
+            .catch(() => {
+              clearTimeout(timeoutId);
+              resolve('bypass-recaptcha-error');
+            });
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        resolve('bypass-recaptcha-exception');
+      }
     });
   };
 
