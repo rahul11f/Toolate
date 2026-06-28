@@ -44,7 +44,7 @@ export default function AdminFeedbackPage() {
         const res = await fetch('/api/feedback');
         if (res.ok) {
           const data = await res.json();
-          setFeedback(data);
+          setFeedback(data.feedback || []);
         } else {
           toast.error('Failed to load feedback records.');
         }

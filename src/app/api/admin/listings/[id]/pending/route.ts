@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { Role } from '@/lib/types';
+import { Role, ListingStatus } from '@/lib/types';
 
 export async function POST(
   req: NextRequest,
@@ -18,7 +18,7 @@ export async function POST(
 
     const listing = await prisma.listing.findUnique({
       where: { id },
-      select: { featured: true },
+      select: { status: true },
     });
 
     if (!listing) {
@@ -27,23 +27,23 @@ export async function POST(
 
     const updated = await prisma.listing.update({
       where: { id },
-      data: { featured: !listing.featured },
+      data: { status: ListingStatus.PENDING },
     });
 
     // Log admin action
     await prisma.adminLog.create({
       data: {
         adminId: (session.user as any).id,
-        action: updated.featured ? 'FEATURED_LISTING' : 'UNFEATURED_LISTING',
+        action: 'REVIEW_LISTING_AGAIN',
         targetType: 'LISTING',
         targetId: id,
-        details: `${updated.featured ? 'Featured' : 'Unfeatured'} listing ${id}`,
+        details: `Re-queued listing ${id} for moderation`,
       },
     });
 
-    return NextResponse.json({ success: true, featured: updated.featured });
+    return NextResponse.json({ success: true, status: updated.status });
   } catch (error: any) {
-    console.error('Error toggling feature status:', error);
+    console.error('Error queuing for review:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

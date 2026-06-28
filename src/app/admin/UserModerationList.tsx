@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, Fragment } from 'react';
-import { UserMinus, UserCheck, User, ChevronDown, ChevronUp, Trash2, EyeOff, CheckCircle, ShieldBan, ShieldCheck } from 'lucide-react';
+import { UserMinus, UserCheck, User, ChevronDown, ChevronUp, Trash2, EyeOff, CheckCircle, ShieldBan, ShieldCheck, Edit2, ExternalLink, RotateCcw, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 
 interface ListingSummary {
   id: string;
@@ -10,6 +11,7 @@ interface ListingSummary {
   category: string;
   price: number;
   status: string;
+  featured?: boolean;
 }
 
 interface UserItem {
@@ -155,6 +157,48 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
         setUsers(users.map((u) => {
           if (u.id !== userId) return u;
           return { ...u, listings: u.listings.map((l) => l.id === listingId ? { ...l, status: 'REJECTED' } : l) };
+        }));
+      }
+    } catch {
+      toast.error('Failed to communicate with API.');
+    } finally {
+      setLoadingListingId(null);
+    }
+  };
+
+  const handleReviewAgain = async (userId: string, listingId: string) => {
+    setLoadingListingId(listingId);
+    try {
+      const res = await fetch(`/api/admin/listings/${listingId}/pending`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to re-queue listing.');
+      } else {
+        toast.success('Listing queued for review (PENDING).');
+        setUsers(users.map((u) => {
+          if (u.id !== userId) return u;
+          return { ...u, listings: u.listings.map((l) => l.id === listingId ? { ...l, status: 'PENDING' } : l) };
+        }));
+      }
+    } catch {
+      toast.error('Failed to communicate with API.');
+    } finally {
+      setLoadingListingId(null);
+    }
+  };
+
+  const handleToggleFeature = async (userId: string, listingId: string, currentFeatured: boolean) => {
+    setLoadingListingId(listingId);
+    try {
+      const res = await fetch(`/api/admin/listings/${listingId}/feature`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to toggle featured status.');
+      } else {
+        toast.success(data.featured ? 'Listing marked as Featured!' : 'Listing is no longer featured.');
+        setUsers(users.map((u) => {
+          if (u.id !== userId) return u;
+          return { ...u, listings: u.listings.map((l) => l.id === listingId ? { ...l, featured: data.featured } : l) };
         }));
       }
     } catch {
@@ -328,13 +372,52 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
                                     }`}>
                                       {listing.status}
                                     </span>
+                                    {listing.featured && (
+                                      <span className="text-[8px] bg-amber-100 border border-amber-300 text-amber-700 font-black uppercase px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                        <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" /> Featured
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="font-semibold text-slate-500">
                                     ₹{listing.price.toLocaleString('en-IN')}
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                                  {/* Visit Button */}
+                                  <Link
+                                    href={`/listings/${listing.id}`}
+                                    className="p-1.5 border border-slate-200 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-lg transition"
+                                    title="Visit / Preview Listing"
+                                    target="_blank"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </Link>
+
+                                  {/* Edit Button */}
+                                  <Link
+                                    href={`/listings/edit/${listing.id}`}
+                                    className="p-1.5 border border-slate-200 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 rounded-lg transition"
+                                    title="Edit Listing (Admin)"
+                                    target="_blank"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </Link>
+
+                                  {/* Feature Toggle */}
+                                  <button
+                                    onClick={() => handleToggleFeature(user.id, listing.id, !!listing.featured)}
+                                    disabled={loadingListingId === listing.id}
+                                    className={`p-1.5 border rounded-lg transition disabled:opacity-50 cursor-pointer ${
+                                      listing.featured 
+                                        ? 'bg-amber-50 border-amber-300 text-amber-600 hover:bg-amber-100' 
+                                        : 'bg-white border-slate-200 text-slate-400 hover:bg-amber-50 hover:text-amber-500 hover:border-amber-200'
+                                    }`}
+                                    title={listing.featured ? 'Unfeature Listing' : 'Mark as Featured'}
+                                  >
+                                    <Star className={`w-3.5 h-3.5 ${listing.featured ? 'fill-amber-500' : ''}`} />
+                                  </button>
+
                                   {listing.status !== 'APPROVED' ? (
                                     <button
                                       onClick={() => handleApproveListing(user.id, listing.id)}
@@ -354,6 +437,20 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
                                       <span>Hide Ad</span>
                                     </button>
                                   )}
+
+                                  {/* Review Again (Only if rejected or frozen) */}
+                                  {(listing.status === 'REJECTED' || listing.status === 'FROZEN') && (
+                                    <button
+                                      onClick={() => handleReviewAgain(user.id, listing.id)}
+                                      disabled={loadingListingId === listing.id}
+                                      className="inline-flex items-center space-x-1 border border-slate-250 bg-slate-50 hover:bg-slate-100 text-slate-700 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition cursor-pointer select-none disabled:bg-slate-200"
+                                      title="Set back to PENDING for re-review"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                      <span>Review</span>
+                                    </button>
+                                  )}
+
                                   <button
                                     onClick={() => handleDeleteListing(user.id, listing.id, listing.title)}
                                     disabled={loadingListingId === listing.id}

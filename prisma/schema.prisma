@@ -36,6 +36,7 @@ model User {
   rentPayments     RentPayment[]
   reviews          Review[]
   sessions         Session[]
+  viewings         ViewingSlot[]
   viewingBookings  ViewingBooking[]
 }
 
