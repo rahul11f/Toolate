@@ -126,15 +126,26 @@ export default function SignupPage() {
       }
 
       if (!grecaptcha) {
-        reject(new Error('reCAPTCHA script has not loaded yet. Please wait.'));
+        reject(new Error('reCAPTCHA script has not loaded yet. Please wait or disable adblocker.'));
         return;
       }
+
+      // Add a timeout to prevent indefinite buffering if recaptcha hangs
+      const timeoutId = setTimeout(() => {
+        reject(new Error('reCAPTCHA timeout. Please refresh or disable adblocker.'));
+      }, 5000);
 
       grecaptcha.ready(() => {
         grecaptcha
           .execute(siteKey, { action: 'signup' })
-          .then((token: string) => resolve(token))
-          .catch((err: any) => reject(err));
+          .then((token: string) => {
+            clearTimeout(timeoutId);
+            resolve(token);
+          })
+          .catch((err: any) => {
+            clearTimeout(timeoutId);
+            reject(err);
+          });
       });
     });
   };
