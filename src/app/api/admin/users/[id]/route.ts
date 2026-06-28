@@ -4,8 +4,8 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { Role } from '@/lib/types';
 
-// POST /api/admin/users/[id]/ban — Sets isBanned=true (user stays in DB, cannot log in, email blocked)
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// DELETE /api/admin/users/[id] — Completely removes user from DB (email can be re-used)
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const adminId = (session.user as any).id;
 
     if (id === adminId) {
-      return NextResponse.json({ error: 'You cannot ban yourself.' }, { status: 400 });
+      return NextResponse.json({ error: 'You cannot delete yourself.' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { id } });
@@ -25,32 +25,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
-    if (user.isBanned) {
-      return NextResponse.json({ error: 'User is already banned.' }, { status: 400 });
-    }
-
-    // Soft ban — user stays in DB (email blocked from re-registration) but cannot log in
-    await prisma.user.update({
-      where: { id },
-      data: { isBanned: true },
-    });
-
-    // Invalidate all existing sessions
-    await prisma.session.deleteMany({ where: { userId: id } });
+    // Hard delete — cascades to listings, sessions, accounts, etc.
+    await prisma.user.delete({ where: { id } });
 
     await prisma.adminLog.create({
       data: {
         adminId,
-        action: 'BAN_USER',
+        action: 'DELETE_USER',
         targetType: 'USER',
         targetId: id,
-        details: `Banned user: "${user.email}" (Name: ${user.name || 'None'})`,
+        details: `Permanently deleted user: "${user.email}" (Name: ${user.name || 'None'})`,
       },
     });
 
-    return NextResponse.json({ success: true, message: 'User banned. They cannot log in. Email is blocked from re-registration.' });
+    return NextResponse.json({ success: true, message: 'User permanently deleted. Email can be re-used.' });
   } catch (error: any) {
-    console.error('Error banning user:', error);
+    console.error('Error deleting user:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }

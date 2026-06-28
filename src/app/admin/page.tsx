@@ -46,6 +46,7 @@ export default async function AdminDashboardPage() {
           name: true,
           email: true,
           role: true,
+          isBanned: true,
           createdAt: true,
           listings: {
             select: {

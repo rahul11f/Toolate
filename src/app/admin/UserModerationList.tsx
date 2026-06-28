@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Fragment } from 'react';
-import { UserMinus, User, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { UserMinus, UserCheck, User, ChevronDown, ChevronUp, Trash2, EyeOff, CheckCircle, ShieldBan, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ListingSummary {
@@ -17,6 +17,7 @@ interface UserItem {
   name: string | null;
   email: string | null;
   role: string;
+  isBanned: boolean;
   createdAt: Date | string;
   listings: ListingSummary[];
   _count: {
@@ -31,67 +32,104 @@ interface UserModerationListProps {
 
 export default function UserModerationList({ initialUsers, currentAdminId }: UserModerationListProps) {
   const [users, setUsers] = useState<UserItem[]>(initialUsers);
-  const [banningId, setBanningId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [loadingListingId, setLoadingListingId] = useState<string | null>(null);
 
-  const handleBanUser = async (id: string, email: string) => {
+  // ──────────────────────────────────────────────
+  // DELETE: permanently removes user from database
+  // The email can be reused to create a new account
+  // ──────────────────────────────────────────────
+  const handleDeleteUser = async (id: string, email: string) => {
     if (id === currentAdminId) {
-      toast.error('You cannot delete or ban yourself.');
+      toast.error('You cannot delete yourself.');
       return;
     }
+    if (!confirm(`DELETE user "${email}"?\n\nThis permanently removes the account and ALL their data (listings, sessions, etc.).\nThe email will be FREE to re-register.\n\nAre you sure?`)) return;
 
-    if (!confirm(`WARNING: Banning user "${email}" will permanently DELETE their account and CASCADE delete all their listings, logs, and sessions. Are you sure you want to proceed?`)) {
-      return;
-    }
-
-    setBanningId(id);
+    setLoadingId(id);
     try {
-      const res = await fetch(`/api/admin/users/${id}/ban`, {
-        method: 'POST',
-      });
-
+      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
       const data = await res.json();
-
       if (!res.ok) {
-        toast.error(data.error || 'Failed to ban/delete user.');
+        toast.error(data.error || 'Failed to delete user.');
       } else {
-        toast.success(`User "${email}" successfully banned and purged.`);
+        toast.success(`User "${email}" permanently deleted. Email is free to re-use.`);
         setUsers(users.filter((u) => u.id !== id));
       }
-    } catch (err) {
+    } catch {
       toast.error('An unexpected error occurred.');
     } finally {
-      setBanningId(null);
+      setLoadingId(null);
+    }
+  };
+
+  // ──────────────────────────────────────────────
+  // BAN: blocks user from logging in forever
+  // Email CANNOT be re-used (user stays in DB)
+  // ──────────────────────────────────────────────
+  const handleBanUser = async (id: string, email: string) => {
+    if (id === currentAdminId) {
+      toast.error('You cannot ban yourself.');
+      return;
+    }
+    if (!confirm(`BAN user "${email}"?\n\nThey will be permanently blocked from logging in.\nTheir email CANNOT be re-used for a new account.\nYou can unban them later from this dashboard.\n\nAre you sure?`)) return;
+
+    setLoadingId(id);
+    try {
+      const res = await fetch(`/api/admin/users/${id}/ban`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to ban user.');
+      } else {
+        toast.success(`User "${email}" banned. They cannot log in.`);
+        setUsers(users.map((u) => u.id === id ? { ...u, isBanned: true } : u));
+      }
+    } catch {
+      toast.error('An unexpected error occurred.');
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  // ──────────────────────────────────────────────
+  // UNBAN: restores login access
+  // ──────────────────────────────────────────────
+  const handleUnbanUser = async (id: string, email: string) => {
+    if (!confirm(`UNBAN user "${email}"?\n\nThey will be able to log in again.`)) return;
+
+    setLoadingId(id);
+    try {
+      const res = await fetch(`/api/admin/users/${id}/unban`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to unban user.');
+      } else {
+        toast.success(`User "${email}" has been unbanned.`);
+        setUsers(users.map((u) => u.id === id ? { ...u, isBanned: false } : u));
+      }
+    } catch {
+      toast.error('An unexpected error occurred.');
+    } finally {
+      setLoadingId(null);
     }
   };
 
   const handleApproveListing = async (userId: string, listingId: string) => {
     setLoadingListingId(listingId);
     try {
-      const res = await fetch(`/api/admin/listings/${listingId}/approve`, {
-        method: 'POST',
-      });
-
+      const res = await fetch(`/api/admin/listings/${listingId}/approve`, { method: 'POST' });
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || 'Failed to approve listing.');
       } else {
         toast.success('Listing approved & published.');
-        setUsers(
-          users.map((u) => {
-            if (u.id !== userId) return u;
-            return {
-              ...u,
-              listings: u.listings.map((l) =>
-                l.id === listingId ? { ...l, status: 'APPROVED' } : l
-              ),
-            };
-          })
-        );
+        setUsers(users.map((u) => {
+          if (u.id !== userId) return u;
+          return { ...u, listings: u.listings.map((l) => l.id === listingId ? { ...l, status: 'APPROVED' } : l) };
+        }));
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to communicate with API.');
     } finally {
       setLoadingListingId(null);
@@ -100,7 +138,7 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
 
   const handleRejectListing = async (userId: string, listingId: string) => {
     const reason = prompt('Please enter the reason for hiding/rejecting this listing:', 'Inappropriate content or violates terms.');
-    if (reason === null) return; // cancelled
+    if (reason === null) return;
 
     setLoadingListingId(listingId);
     try {
@@ -109,26 +147,17 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || 'Failed to reject listing.');
       } else {
         toast.success('Listing rejected & hidden.');
-        setUsers(
-          users.map((u) => {
-            if (u.id !== userId) return u;
-            return {
-              ...u,
-              listings: u.listings.map((l) =>
-                l.id === listingId ? { ...l, status: 'REJECTED' } : l
-              ),
-            };
-          })
-        );
+        setUsers(users.map((u) => {
+          if (u.id !== userId) return u;
+          return { ...u, listings: u.listings.map((l) => l.id === listingId ? { ...l, status: 'REJECTED' } : l) };
+        }));
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to communicate with API.');
     } finally {
       setLoadingListingId(null);
@@ -140,31 +169,18 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
 
     setLoadingListingId(listingId);
     try {
-      const res = await fetch(`/api/listings/${listingId}`, {
-        method: 'DELETE',
-      });
-
+      const res = await fetch(`/api/listings/${listingId}`, { method: 'DELETE' });
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || 'Failed to delete listing.');
       } else {
         toast.success('Listing permanently deleted.');
-        setUsers(
-          users.map((u) => {
-            if (u.id !== userId) return u;
-            return {
-              ...u,
-              listings: u.listings.filter((l) => l.id !== listingId),
-              _count: {
-                ...u._count,
-                listings: u._count.listings - 1,
-              },
-            };
-          })
-        );
+        setUsers(users.map((u) => {
+          if (u.id !== userId) return u;
+          return { ...u, listings: u.listings.filter((l) => l.id !== listingId), _count: { ...u._count, listings: u._count.listings - 1 } };
+        }));
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete listing.');
     } finally {
       setLoadingListingId(null);
@@ -179,32 +195,28 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-xs">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
-          <thead className="bg-slate-55 border-b border-slate-100 text-slate-450 uppercase font-bold text-[10px] tracking-wider">
+          <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
             <tr>
               <th className="px-6 py-4">User Details</th>
-              <th className="px-6 py-4">Role</th>
+              <th className="px-6 py-4">Role / Status</th>
               <th className="px-6 py-4">Listings Posted</th>
-              <th className="px-6 py-4">Registration Date</th>
-              <th className="px-6 py-4 text-right">Moderation</th>
+              <th className="px-6 py-4">Registered</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-650">
             {users.map((user) => (
               <Fragment key={user.id}>
-                <tr key={user.id} className="hover:bg-slate-50/50 transition">
+                <tr className={`hover:bg-slate-50/50 transition ${user.isBanned ? 'bg-rose-50/30' : ''}`}>
                   <td className="px-6 py-4 flex items-center space-x-3">
                     <button
                       onClick={() => toggleExpandUser(user.id)}
                       className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
                       title="View user listings"
                     >
-                      {expandedUserId === user.id ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
+                      {expandedUserId === user.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
-                    <div className="bg-slate-100 p-2 rounded-full text-slate-400 shrink-0">
+                    <div className={`p-2 rounded-full shrink-0 ${user.isBanned ? 'bg-rose-100 text-rose-400' : 'bg-slate-100 text-slate-400'}`}>
                       <User className="w-4 h-4" />
                     </div>
                     <div>
@@ -213,11 +225,18 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                      user.role === 'ADMIN' ? 'bg-rose-50 text-rose-700 border border-rose-100' : 'bg-slate-50 text-slate-600 border border-slate-150'
-                    }`}>
-                      {user.role}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`inline-flex w-fit px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                        user.role === 'ADMIN' ? 'bg-rose-50 text-rose-700 border border-rose-100' : 'bg-slate-50 text-slate-600 border border-slate-150'
+                      }`}>
+                        {user.role}
+                      </span>
+                      {user.isBanned && (
+                        <span className="inline-flex w-fit items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-200">
+                          <ShieldBan className="w-3 h-3" /> Banned
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <button
@@ -232,28 +251,56 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
                   </td>
                   <td className="px-6 py-4 text-right">
                     {user.id !== currentAdminId ? (
-                      <button
-                        onClick={() => handleBanUser(user.id, user.email || '')}
-                        disabled={banningId === user.id}
-                        className="inline-flex items-center space-x-1 border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer disabled:bg-slate-50 disabled:text-slate-300 disabled:border-slate-100"
-                      >
-                        <UserMinus className="w-3.5 h-3.5" />
-                        <span>Ban Account</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        {/* UNBAN — only shown if user is currently banned */}
+                        {user.isBanned ? (
+                          <button
+                            onClick={() => handleUnbanUser(user.id, user.email || '')}
+                            disabled={loadingId === user.id}
+                            title="Unban this user — restores their login access"
+                            className="inline-flex items-center space-x-1 border border-emerald-200 bg-white hover:bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                          >
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Unban</span>
+                          </button>
+                        ) : (
+                          /* BAN — soft bans user, keeps email blocked forever until unbanned */
+                          <button
+                            onClick={() => handleBanUser(user.id, user.email || '')}
+                            disabled={loadingId === user.id}
+                            title="Ban this user — they cannot log in, email is blocked"
+                            className="inline-flex items-center space-x-1 border border-amber-200 bg-white hover:bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                          >
+                            <ShieldBan className="w-3.5 h-3.5" />
+                            <span>Ban</span>
+                          </button>
+                        )}
+
+                        {/* DELETE — hard deletes, email is freed up to re-register */}
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.email || '')}
+                          disabled={loadingId === user.id}
+                          title="Delete user — permanently removes account. Email can be re-used."
+                          className="inline-flex items-center space-x-1 border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     ) : (
-                      <span className="text-xs text-slate-350 italic pr-4">You (Owner)</span>
+                      <span className="text-xs text-slate-350 italic pr-4">You (Admin Owner)</span>
                     )}
                   </td>
                 </tr>
-                
-                {/* Accordion expand list for user properties */}
+
+                {/* Listings accordion */}
                 {expandedUserId === user.id && (
                   <tr className="bg-slate-50/40">
                     <td colSpan={5} className="px-8 py-5 border-y border-slate-100/60">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="font-extrabold text-slate-500 text-[10px] uppercase tracking-wider">
-                            Listings published by {user.name || user.email}
+                            Listings by {user.name || user.email}
                           </h4>
                           <span className="text-[10px] font-bold text-slate-400">
                             Total: {user.listings.length} properties
@@ -262,7 +309,7 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
 
                         {user.listings.length === 0 ? (
                           <div className="text-xs text-slate-400 italic py-2">
-                            This user has not posted any property coordinates.
+                            This user has not posted any listings.
                           </div>
                         ) : (
                           <div className="divide-y divide-slate-100 bg-white border border-slate-100 rounded-xl overflow-hidden shadow-2xs">
@@ -283,7 +330,7 @@ export default function UserModerationList({ initialUsers, currentAdminId }: Use
                                     </span>
                                   </div>
                                   <div className="font-semibold text-slate-500">
-                                    Expected Rent: ₹{listing.price.toLocaleString('en-IN')}
+                                    ₹{listing.price.toLocaleString('en-IN')}
                                   </div>
                                 </div>
 

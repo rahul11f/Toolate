@@ -16,6 +16,8 @@ model User {
   image            String?
   passwordHash     String?
   role             String           @default("USER")
+  isBanned         Boolean          @default(false)
+  whatsappEnabled  Boolean          @default(false)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   lifestyleProfile String?

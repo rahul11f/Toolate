@@ -25,7 +25,8 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
 
-  const requireOtp = process.env.NEXT_PUBLIC_REQUIRE_OTP === 'true';
+  // OTP is always required — this ensures real email verification for every user
+  const requireOtp = true;
 
   const {
     register,

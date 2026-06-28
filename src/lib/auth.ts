@@ -50,6 +50,11 @@ export const authOptions: AuthOptions = {
           throw new Error('Invalid email or password.');
         }
 
+        if (user.isBanned) {
+          console.warn(`[NextAuth] Banned user attempted login: "${trimmedEmail}"`);
+          throw new Error('Your account has been suspended. Please contact support if you believe this is an error.');
+        }
+
         console.log(`[NextAuth] Successful login for user: "${trimmedEmail}" with role: "${user.role}"`);
         return {
           id: user.id,

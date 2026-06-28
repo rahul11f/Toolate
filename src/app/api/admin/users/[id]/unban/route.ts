@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { Role } from '@/lib/types';
 
-// POST /api/admin/users/[id]/ban — Sets isBanned=true (user stays in DB, cannot log in, email blocked)
+// POST /api/admin/users/[id]/unban — Clears isBanned flag, restoring access
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -16,41 +16,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const adminId = (session.user as any).id;
 
-    if (id === adminId) {
-      return NextResponse.json({ error: 'You cannot ban yourself.' }, { status: 400 });
-    }
-
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
-    if (user.isBanned) {
-      return NextResponse.json({ error: 'User is already banned.' }, { status: 400 });
+    if (!user.isBanned) {
+      return NextResponse.json({ error: 'User is not currently banned.' }, { status: 400 });
     }
 
-    // Soft ban — user stays in DB (email blocked from re-registration) but cannot log in
     await prisma.user.update({
       where: { id },
-      data: { isBanned: true },
+      data: { isBanned: false },
     });
-
-    // Invalidate all existing sessions
-    await prisma.session.deleteMany({ where: { userId: id } });
 
     await prisma.adminLog.create({
       data: {
         adminId,
-        action: 'BAN_USER',
+        action: 'UNBAN_USER',
         targetType: 'USER',
         targetId: id,
-        details: `Banned user: "${user.email}" (Name: ${user.name || 'None'})`,
+        details: `Unbanned user: "${user.email}" (Name: ${user.name || 'None'})`,
       },
     });
 
-    return NextResponse.json({ success: true, message: 'User banned. They cannot log in. Email is blocked from re-registration.' });
+    return NextResponse.json({ success: true, message: 'User unbanned. They can now log in again.' });
   } catch (error: any) {
-    console.error('Error banning user:', error);
+    console.error('Error unbanning user:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
