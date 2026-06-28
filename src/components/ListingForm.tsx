@@ -2037,6 +2037,151 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
         </div>
       </div>
 
+      {/* Accessibility & Nearby Landmarks Card */}
+      <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+        <h3 className="text-xl font-bold text-slate-800 border-b border-slate-100 pb-3">
+          Accessibility & Nearby Landmarks
+        </h3>
+        
+        <div className="space-y-4">
+          <label className="text-xs uppercase font-extrabold text-slate-400 tracking-wider block">Modes of Accessibility</label>
+          <div className="flex flex-wrap gap-4">
+            {['Train', 'Bus', 'Car', 'Ship', 'Cab/Auto'].map((mode) => (
+              <label key={mode} className="flex items-center space-x-2 text-sm font-semibold text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={facilities.accessibilityModes?.includes(mode) || false}
+                  onChange={(e) => {
+                    const current = facilities.accessibilityModes || [];
+                    if (e.target.checked) {
+                      handleFacilityChange('accessibilityModes', [...current, mode]);
+                    } else {
+                      handleFacilityChange('accessibilityModes', current.filter((m: string) => m !== mode));
+                    }
+                  }}
+                  className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                />
+                <span>{mode}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-slate-100">
+          <label className="text-xs uppercase font-extrabold text-slate-400 tracking-wider block">Distances to Landmarks (in km)</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Nearest Metro</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distMetro || ''}
+                onChange={(e) => handleFacilityChange('distMetro', e.target.value)}
+                placeholder="e.g. 1.5"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Railway Station</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distTrain || ''}
+                onChange={(e) => handleFacilityChange('distTrain', e.target.value)}
+                placeholder="e.g. 5"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Bus Stand</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distBus || ''}
+                onChange={(e) => handleFacilityChange('distBus', e.target.value)}
+                placeholder="e.g. 0.5"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Airport</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distAirport || ''}
+                onChange={(e) => handleFacilityChange('distAirport', e.target.value)}
+                placeholder="e.g. 20"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Hospital</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distHospital || ''}
+                onChange={(e) => handleFacilityChange('distHospital', e.target.value)}
+                placeholder="e.g. 2"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Market / Mall</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distMarket || ''}
+                onChange={(e) => handleFacilityChange('distMarket', e.target.value)}
+                placeholder="e.g. 1"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">School / College</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distSchool || ''}
+                onChange={(e) => handleFacilityChange('distSchool', e.target.value)}
+                placeholder="e.g. 3"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-bold text-slate-400">Police Station</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={facilities.distPolice || ''}
+                onChange={(e) => handleFacilityChange('distPolice', e.target.value)}
+                placeholder="e.g. 1.5"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 text-sm px-3 py-2 rounded-xl outline-none"
+              />
+            </div>
+          </div>
+          
+          <div className="pt-2">
+            <label className="flex items-center space-x-2.5 text-slate-700 text-sm font-semibold cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={facilities.disableAutoMetro !== true}
+                onChange={(e) => handleFacilityChange('disableAutoMetro', !e.target.checked)}
+                className="w-4 h-4 rounded-sm border-slate-355 text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+              />
+              <span>Automatically show &quot;Near Metro&quot; badge if metro is detected nearby</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       {/* Timing and Contact Details Card */}
       <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-sm space-y-6">
         <h3 className="text-xl font-bold text-slate-800 border-b border-slate-100 pb-3">

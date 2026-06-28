@@ -72,7 +72,7 @@ function ResetPasswordForm() {
         setSuccess(true);
         setTimeout(() => {
           router.push('/login');
-        }, 3000);
+        }, 1000);
       }
     } catch {
       toast.error('An unexpected error occurred.');
@@ -93,12 +93,18 @@ function ResetPasswordForm() {
           <p className="text-sm text-slate-400 leading-relaxed">
             This password reset link is invalid, incomplete, or has expired. Please request a new link to reset your password.
           </p>
-          <div className="pt-4">
+          <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/forgot-password"
-              className="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition"
+              className="inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-md transition w-full sm:w-auto"
             >
-              Request New Link
+              <span>Resend Link</span>
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-6 rounded-xl transition w-full sm:w-auto"
+            >
+              <span>Back to Login</span>
             </Link>
           </div>
         </div>

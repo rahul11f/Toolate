@@ -121,14 +121,14 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
   if (state) {
     where.state = {
-      equals: state,
+      contains: state,
       mode: 'insensitive'
     };
   }
 
   if (city) {
     where.city = {
-      equals: city,
+      contains: city,
       mode: 'insensitive'
     };
   }
@@ -192,6 +192,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
               documentVerified: true,
               legalName: true,
               email: true,
+              whatsappEnabled: true,
             }
           }
         }
@@ -241,8 +242,13 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
       if (nearMetro && dbListings.length > 0) {
         await Promise.all(dbListings.map(async (l) => {
           try {
-            const stations = await getNearbyTransit(l.lat, l.lng);
-            transitResults[l.id] = stations.some(s => s.type === 'METRO');
+            const facs = typeof l.facilities === 'string' ? JSON.parse(l.facilities) : (l.facilities || {});
+            if (facs.disableAutoMetro) {
+              transitResults[l.id] = false;
+            } else {
+              const stations = await getNearbyTransit(l.lat, l.lng);
+              transitResults[l.id] = stations.some(s => s.type === 'METRO');
+            }
           } catch {
             transitResults[l.id] = false;
           }
@@ -352,6 +358,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                 documentVerified: true,
                 legalName: true,
                 email: true,
+                whatsappEnabled: true,
               }
             }
           }
@@ -375,18 +382,22 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
       total = dbTotal;
     }
 
-    // Fetch metro proximity for the paginated page items (max 6) to show visual badges
-    if (listings.length > 0) {
-      await Promise.all(listings.map(async (l) => {
-        if (l.hasMetro !== null && l.hasMetro !== undefined) return;
-        try {
-          const stations = await getNearbyTransit(l.lat, l.lng);
-          l.hasMetro = stations.some(s => s.type === 'METRO');
-        } catch {
-          l.hasMetro = false;
-        }
-      }));
-    }
+      // Fetch metro proximity for the paginated page items (max 6) to show visual badges
+      if (listings.length > 0) {
+        await Promise.all(listings.map(async (l) => {
+          if (l.hasMetro !== null && l.hasMetro !== undefined) return;
+          try {
+            if (l.parsedFacilities?.disableAutoMetro) {
+              l.hasMetro = false;
+            } else {
+              const stations = await getNearbyTransit(l.lat, l.lng);
+              l.hasMetro = stations.some(s => s.type === 'METRO');
+            }
+          } catch {
+            l.hasMetro = false;
+          }
+        }));
+      }
   } catch (error) {
     console.error('Failed to load catalog listings:', error);
   }

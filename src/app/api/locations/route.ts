@@ -9,15 +9,15 @@ const CACHE_KEY = 'locations:distinct:v2';
 
 export async function GET() {
   try {
-    // 1. Try to read from Cache first
-    try {
-      const cached = await redis.get(CACHE_KEY);
-      if (cached) {
-        return NextResponse.json(typeof cached === 'string' ? JSON.parse(cached) : cached);
-      }
-    } catch (redisErr) {
-      console.warn('[Redis Warning] Failed to read locations cache:', redisErr);
-    }
+    // 1. Try to read from Cache first (disabled for realtime)
+    // try {
+    //   const cached = await redis.get(CACHE_KEY);
+    //   if (cached) {
+    //     return NextResponse.json(typeof cached === 'string' ? JSON.parse(cached) : cached);
+    //   }
+    // } catch (redisErr) {
+    //   console.warn('[Redis Warning] Failed to read locations cache:', redisErr);
+    // }
 
     // 2. Fetch distinct combinations using Prisma's database-level filtering
     const listings = await prisma.listing.findMany({

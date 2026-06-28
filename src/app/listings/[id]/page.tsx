@@ -1303,6 +1303,83 @@ export default async function ListingDetailPage({ params, searchParams }: Listin
             </div>
           )}
 
+          {/* Accessibility & Landmarks Card */}
+          {((facilities.accessibilityModes && facilities.accessibilityModes.length > 0) || facilities.distMetro || facilities.distTrain || facilities.distBus || facilities.distAirport || facilities.distHospital || facilities.distMarket || facilities.distSchool || facilities.distPolice) && (
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-4">
+              <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2 border-b border-slate-50 pb-2">
+                <Compass className="w-5 h-5 text-indigo-555" />
+                <span>Accessibility & Nearby Landmarks</span>
+              </h3>
+              
+              {facilities.accessibilityModes && facilities.accessibilityModes.length > 0 && (
+                <div className="space-y-2 pb-3 border-b border-slate-50">
+                  <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">Modes of Accessibility</span>
+                  <div className="flex flex-wrap gap-2">
+                    {facilities.accessibilityModes.map((mode: string, idx: number) => (
+                      <span key={idx} className="bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-xl">
+                        {mode}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-1">
+                <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block mb-3">Distances (in km)</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-semibold text-slate-700">
+                  {facilities.distMetro && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Metro Station</span>
+                      <span>{facilities.distMetro} km</span>
+                    </div>
+                  )}
+                  {facilities.distTrain && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Railway Station</span>
+                      <span>{facilities.distTrain} km</span>
+                    </div>
+                  )}
+                  {facilities.distBus && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Bus Stand</span>
+                      <span>{facilities.distBus} km</span>
+                    </div>
+                  )}
+                  {facilities.distAirport && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Airport</span>
+                      <span>{facilities.distAirport} km</span>
+                    </div>
+                  )}
+                  {facilities.distHospital && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Hospital</span>
+                      <span>{facilities.distHospital} km</span>
+                    </div>
+                  )}
+                  {facilities.distMarket && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Market / Mall</span>
+                      <span>{facilities.distMarket} km</span>
+                    </div>
+                  )}
+                  {facilities.distSchool && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">School / College</span>
+                      <span>{facilities.distSchool} km</span>
+                    </div>
+                  )}
+                  {facilities.distPolice && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Police Station</span>
+                      <span>{facilities.distPolice} km</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Description */}
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xs space-y-3">
             <h3 className="font-bold text-slate-800 text-lg">

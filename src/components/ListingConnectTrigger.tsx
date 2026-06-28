@@ -131,8 +131,8 @@ export default function ListingConnectTrigger({
           <span>Connect</span>
         </button>
 
-        {/* WhatsApp Quick-Connect — only shown on card if user is logged in and lister has a WhatsApp number */}
-        {isAuthenticated && !isRestricted && listing.whatsappNumber && (
+        {/* WhatsApp Quick-Connect — only shown on card if user is logged in and lister has a WhatsApp number and enabled it */}
+        {isAuthenticated && !isRestricted && listing.whatsappNumber && lister?.whatsappEnabled && (
           <a
             href={`https://wa.me/91${listing.whatsappNumber}?text=Hi, I found your listing "${listing.title}" on Toolate. Is it still available?`}
             target="_blank"
@@ -279,7 +279,8 @@ export default function ListingConnectTrigger({
                     </a>
 
                     {/* WhatsApp link */}
-                    <a
+                    {listing.whatsappNumber && lister?.whatsappEnabled && (
+                      <a
                       href={`https://wa.me/91${listing.whatsappNumber}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -297,6 +298,7 @@ export default function ListingConnectTrigger({
                       </div>
                       <span className="text-xs text-slate-400 group-hover:text-emerald-600 font-bold">Message &rarr;</span>
                     </a>
+                    )}
 
                     {/* Email link */}
                     {lister.email && (

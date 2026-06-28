@@ -61,30 +61,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'reCAPTCHA verification failed. Please try again.' }, { status: 400 });
     }
 
-    // 4. Verify OTP from Redis (only if required by configuration)
-    const requireOtp = process.env.NEXT_PUBLIC_REQUIRE_OTP === 'true';
-    if (requireOtp) {
-      if (!otp) {
-        return NextResponse.json({ error: 'Verification OTP is required.' }, { status: 400 });
-      }
+    // 4. Verify OTP from Redis (mandatory for all signups)
+    if (!otp) {
+      return NextResponse.json({ error: 'Verification OTP is required.' }, { status: 400 });
+    }
 
-      const otpKey = `otp:${normalizedEmail}`;
-      const storedOtp = await redis.get(otpKey);
-      
-      if (!storedOtp) {
-        return NextResponse.json({ error: 'OTP code has expired or is invalid.' }, { status: 400 });
-      }
+    const otpKey = `otp:${normalizedEmail}`;
+    const storedOtp = await redis.get(otpKey);
+    
+    if (!storedOtp) {
+      return NextResponse.json({ error: 'OTP code has expired or is invalid.' }, { status: 400 });
+    }
 
-      if (String(storedOtp).trim() !== String(otp).trim()) {
-        return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 400 });
-      }
+    if (String(storedOtp).trim() !== String(otp).trim()) {
+      return NextResponse.json({ error: 'Incorrect OTP code.' }, { status: 400 });
+    }
 
-      // Delete OTP key since it was successfully verified
-      try {
-        await redis.del(otpKey);
-      } catch (redisErr) {
-        console.error('[Redis Error] Failed to delete verified OTP:', redisErr);
-      }
+    // Delete OTP key since it was successfully verified
+    try {
+      await redis.del(otpKey);
+    } catch (redisErr) {
+      console.error('[Redis Error] Failed to delete verified OTP:', redisErr);
     }
 
     // 5. Check if user already exists (just to double check concurrency)

@@ -101,6 +101,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'Browse Listings', path: '/listings' },
+    { label: 'Free Tools', path: '/tools' },
     { label: 'Market Insights', path: '/insights' },
     { label: 'About Us', path: '/about' },
   ];
