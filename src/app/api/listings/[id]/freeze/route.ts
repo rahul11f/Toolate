@@ -6,7 +6,7 @@ import { ListingStatus } from '@/lib/types';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { status } = body;
 
@@ -29,14 +29,14 @@ export async function POST(
     // Verify ownership
     const listing = await prisma.listing.findUnique({
       where: { id },
-      select: { ownerId: true, status: true },
+      select: { userId: true, status: true },
     });
 
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    if (listing.ownerId !== (session.user as any).id && (session.user as any).role !== 'ADMIN') {
+    if (listing.userId !== (session.user as any).id && (session.user as any).role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
