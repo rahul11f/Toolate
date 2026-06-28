@@ -20,6 +20,9 @@ const LeafletMap = dynamic(() => import('./LeafletMap'), {
   ),
 });
 
+const DEFAULT_LAT = 12.9716;
+const DEFAULT_LNG = 77.5946;
+
 const listingSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
@@ -47,6 +50,9 @@ const listingSchema = z.object({
   checkInDate: z.string().optional().nullable(),
   checkOutDate: z.string().optional().nullable(),
   hotelBookingProofUrl: z.string().optional().nullable(),
+}).refine(data => !(data.lat === DEFAULT_LAT && data.lng === DEFAULT_LNG), {
+  message: "Please search your location on the map, click 'Use My Location', or drag the pin to set your exact property coordinates.",
+  path: ["address"]
 });
 
 type ListingFormFields = z.infer<typeof listingSchema>;
@@ -112,10 +118,6 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Setup default coordinates (e.g. Bangalore, India center)
-  const defaultLat = 12.9716;
-  const defaultLng = 77.5946;
-
   const {
     register,
     handleSubmit,
@@ -167,8 +169,8 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
           contactNumber: '',
           whatsappNumber: '',
           address: '',
-          lat: defaultLat,
-          lng: defaultLng,
+          lat: DEFAULT_LAT,
+          lng: DEFAULT_LNG,
           area: '',
           state: '',
           city: '',
@@ -187,8 +189,8 @@ export default function ListingForm({ initialData, isEditMode = false }: Listing
   });
 
   const watchImages = watch('images') || [];
-  const watchLat = watch('lat') || defaultLat;
-  const watchLng = watch('lng') || defaultLng;
+  const watchLat = watch('lat') || DEFAULT_LAT;
+  const watchLng = watch('lng') || DEFAULT_LNG;
   const watchAddress = watch('address') || '';
   const watchCategory = watch('category') || ListingCategory.HOUSE;
   const watchPriceType = watch('priceType') || 'PAID';
