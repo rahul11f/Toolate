@@ -14,6 +14,7 @@ interface Lister {
   documentVerified: boolean;
   legalName?: string | null;
   email?: string | null;
+  whatsappEnabled?: boolean;
 }
 
 interface ListingData {
