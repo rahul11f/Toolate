@@ -52,6 +52,7 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
   const [selectedSlotId, setSelectedSlotId] = useState('');
   const [tenantMessage, setTenantMessage] = useState('');
   const [bookingSlot, setBookingSlot] = useState(false);
+  const [returnMessages, setReturnMessages] = useState<Record<string, string>>({});
 
   // Fetch slots & bookings
   const loadSchedule = useCallback(async () => {
@@ -125,10 +126,11 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
   // Landlord/Tenant: Update booking status
   const handleUpdateBookingStatus = async (bookingId: string, status: 'CONFIRMED' | 'CANCELLED') => {
     try {
+      const message = returnMessages[bookingId] || '';
       const res = await fetch(`/api/listings/${listingId}/viewings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, status }),
+        body: JSON.stringify({ bookingId, status, returnMessage: message }),
       });
 
       const data = await res.json();
@@ -338,19 +340,28 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                     </div>
 
                     {booking.status === 'PENDING' && (
-                      <div className="flex gap-2 shrink-0 self-end sm:self-center">
-                        <button
-                          onClick={() => handleUpdateBookingStatus(booking.id, 'CONFIRMED')}
-                          className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg transition text-[11px]"
-                        >
-                          <Check className="w-3 h-3" /> Confirm
-                        </button>
-                        <button
-                          onClick={() => handleUpdateBookingStatus(booking.id, 'CANCELLED')}
-                          className="flex items-center gap-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition text-[11px]"
-                        >
-                          <X className="w-3 h-3 text-rose-500" /> Decline
-                        </button>
+                      <div className="flex flex-col gap-2 shrink-0 sm:min-w-[200px]">
+                        <input
+                          type="text"
+                          placeholder="Optional message to tenant..."
+                          value={returnMessages[booking.id] || ''}
+                          onChange={(e) => setReturnMessages({ ...returnMessages, [booking.id]: e.target.value })}
+                          className="w-full bg-white border border-slate-200 text-[11px] px-2.5 py-1.5 rounded-lg outline-hidden"
+                        />
+                        <div className="flex gap-2 self-end sm:self-center">
+                          <button
+                            onClick={() => handleUpdateBookingStatus(booking.id, 'CONFIRMED')}
+                            className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg transition text-[11px]"
+                          >
+                            <Check className="w-3 h-3" /> Confirm
+                          </button>
+                          <button
+                            onClick={() => handleUpdateBookingStatus(booking.id, 'CANCELLED')}
+                            className="flex items-center gap-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold px-3 py-1.5 rounded-lg transition text-[11px]"
+                          >
+                            <X className="w-3 h-3 text-rose-500" /> Decline
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -457,6 +468,11 @@ export default function ViewingScheduler({ listingId }: ViewingSchedulerProps) {
                       {booking.message && (
                         <p className="text-[10px] text-slate-450 leading-relaxed italic">
                           Message: "{booking.message}"
+                        </p>
+                      )}
+                      {booking.returnMessage && (
+                        <p className="text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-md p-2 mt-1 italic">
+                          Landlord: "{booking.returnMessage}"
                         </p>
                       )}
                     </div>

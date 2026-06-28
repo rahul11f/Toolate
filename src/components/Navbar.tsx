@@ -229,6 +229,17 @@ export default function Navbar() {
                           ))}
                         </div>
                       )}
+                      
+                      {/* View all notifications link */}
+                      <div className="pt-2 mt-2 border-t border-slate-100">
+                        <Link
+                          href="/notifications"
+                          onClick={() => setShowNotifDropdown(false)}
+                          className="block text-center text-xs font-bold text-indigo-600 hover:text-indigo-750 p-2 rounded-lg hover:bg-indigo-50 transition"
+                        >
+                          View all notifications
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -405,7 +416,7 @@ export default function Navbar() {
               </Link>
 
               <Link
-                href="/dashboard?tab=profile"
+                href="/notifications"
                 onClick={() => {
                   setIsOpen(false);
                 }}

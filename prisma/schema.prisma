@@ -201,8 +201,9 @@ model ViewingBooking {
   listingId String
   tenantId  String
   date      DateTime
-  message   String?
-  status    String      @default("PENDING")
+  message        String?
+  returnMessage  String?
+  status         String      @default("PENDING")
   createdAt DateTime    @default(now())
   listing   Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
   slot      ViewingSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)

@@ -194,7 +194,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
     }
     const sessionUserId = (session.user as any).id;
 
-    const { bookingId, status } = await req.json();
+    const { bookingId, status, returnMessage } = await req.json();
     if (!bookingId || !status) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
     }
@@ -226,7 +226,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
 
     const updatedBooking = await prisma.viewingBooking.update({
       where: { id: bookingId },
-      data: { status },
+      data: { status, returnMessage: returnMessage ? String(returnMessage).trim() : null },
     });
 
     // Send email and notification to tenant
@@ -244,6 +244,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
               <li><strong>Time Slot:</strong> ${booking.slot.startTime} - ${booking.slot.endTime}</li>
             </ul>
             <p>If you have any questions, please contact the landlord directly via the listing details page.</p>
+            ${returnMessage ? `<p style="padding: 10px; background-color: #f3f4f6; border-left: 4px solid #4f46e5; border-radius: 4px;"><strong>Landlord's Message:</strong> ${returnMessage}</p>` : ''}
             <br/>
             <p>Best regards,<br/>The Toolate Team</p>
           `,
@@ -258,7 +259,7 @@ export async function PUT(req: NextRequest, props: { params: Promise<{ id: strin
       data: {
         userId: booking.tenantId,
         title: `Viewing ${status}`,
-        message: `Your viewing request for ${booking.listing.title} has been ${status.toLowerCase()}`,
+        message: `Your viewing request for ${booking.listing.title} has been ${status.toLowerCase()}${returnMessage ? '. The landlord sent a message.' : ''}`,
       }
     });
 

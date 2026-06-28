@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Pencil, Trash2, ExternalLink, Building, IndianRupee } from 'lucide-react';
+import { Pencil, Trash2, ExternalLink, Building, IndianRupee, EyeOff, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ListingStatus } from '@/lib/types';
 
@@ -25,6 +25,7 @@ export default function DashboardListings({ initialListings }: DashboardListings
   const [listings, setListings] = useState<ListingItem[]>(initialListings);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [renewingId, setRenewingId] = useState<string | null>(null);
+  const [freezingId, setFreezingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete listing "${title}"?`)) return;
@@ -80,6 +81,27 @@ export default function DashboardListings({ initialListings }: DashboardListings
     }
   };
 
+  const handleFreezeToggle = async (id: string, currentStatus: ListingStatus) => {
+    setFreezingId(id);
+    const newStatus = currentStatus === ListingStatus.FROZEN ? ListingStatus.APPROVED : ListingStatus.FROZEN;
+    try {
+      const res = await fetch(`/api/listings/${id}/freeze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      toast.success(newStatus === ListingStatus.FROZEN ? 'Listing is now hidden' : 'Listing is now active');
+      setListings(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update status');
+    } finally {
+      setFreezingId(null);
+    }
+  };
+
   const getStatusBadge = (status: ListingStatus) => {
     switch (status) {
       case ListingStatus.APPROVED:
@@ -98,6 +120,12 @@ export default function DashboardListings({ initialListings }: DashboardListings
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-100">
             Rejected
+          </span>
+        );
+      case ListingStatus.FROZEN:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-50 text-slate-600 border border-slate-200">
+            Hidden / Frozen
           </span>
         );
       case 'EXPIRED' as any:
@@ -190,11 +218,21 @@ export default function DashboardListings({ initialListings }: DashboardListings
                           {renewingId === listing.id ? 'Renewing...' : 'Renew'}
                         </button>
                       )}
-                      {listing.status === ListingStatus.APPROVED && !isExpired && (
+                      {(listing.status === ListingStatus.APPROVED || listing.status === ListingStatus.FROZEN) && !isExpired && (
+                        <button
+                          onClick={() => handleFreezeToggle(listing.id, listing.status)}
+                          disabled={freezingId === listing.id}
+                          className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition"
+                          title={listing.status === ListingStatus.FROZEN ? 'Unhide Listing' : 'Hide / Freeze Listing'}
+                        >
+                          {listing.status === ListingStatus.FROZEN ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                      )}
+                      {!isExpired && (
                         <Link
                           href={`/listings/${listing.id}`}
                           className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition"
-                          title="View Live Listing"
+                          title="Preview Listing"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Link>

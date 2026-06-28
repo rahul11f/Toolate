@@ -27,4 +27,5 @@ export enum ListingStatus {
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
   EXPIRED = 'EXPIRED',
+  FROZEN = 'FROZEN',
 }
