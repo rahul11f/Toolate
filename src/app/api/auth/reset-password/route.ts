@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import prisma from '@/lib/prisma';
+import { otpRateLimiter } from '@/lib/redis';
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +23,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Find the reset token in the database
+    // 1. Check rate limits (to prevent token brute-forcing)
+    let isRateLimitOk = true;
+    try {
+      const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+      const rateLimitKey = `reset-pwd-limit:${ip}`;
+      const limitRes = await otpRateLimiter.limit(rateLimitKey);
+      isRateLimitOk = limitRes.success;
+    } catch (redisErr) {
+      console.error('[RateLimit Error] Redis rate-limiting failed:', redisErr);
+    }
+    
+    if (!isRateLimitOk) {
+      return NextResponse.json(
+        { error: 'Too many reset attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
+    // 2. Find the reset token in the database
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
     });
