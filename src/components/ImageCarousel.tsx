@@ -87,7 +87,6 @@ export default function ImageCarousel({ images, title, category = 'RESIDENTIAL' 
             onError={handleImageError}
             loading="eager"
             decoding="async"
-            referrerPolicy="no-referrer"
             className={`w-full h-full object-contain z-10 transition-opacity duration-500`}
           />
         )}
