@@ -18,6 +18,7 @@ interface ViewingBooking {
   message: string | null;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
   createdAt: string;
+  returnMessage?: string | null;
   tenant?: {
     name: string | null;
     email: string | null;
